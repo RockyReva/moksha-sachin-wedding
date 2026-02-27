@@ -9,6 +9,14 @@ import {
 
 const SCREENS = ["home", "rsvp", "schedule", "venue", "stay", "notifications"];
 
+// Hero background: add venue-photo.jpg or venue-photo.png to the public folder — both are supported
+const HERO_BG_FALLBACK = "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&q=80";
+
+// Venue: Map embed with red pin. Uses OpenStreetMap (shows marker). Coords: Federation of Kodava Samaja, Balugodu
+const VENUE_LAT = 12.198;
+const VENUE_LNG = 75.7365;
+const VENUE_MAP_EMBED = `https://www.openstreetmap.org/export/embed.html?bbox=75.5%2C12.0%2C76.8%2C12.5&marker=${VENUE_LAT}%2C${VENUE_LNG}&layer=mapnik`;
+
 // --- Coorg Coffee Estate Color Palette ---
 const theme = {
   bg: "#F7F4F0",
@@ -133,8 +141,6 @@ function MistyMountains() {
       <path d="M0 100 Q60 55 120 80 Q180 50 240 72 Q300 45 360 68 Q380 58 400 85 L400 120 L0 120Z" fill="url(#mist2)" />
       {/* Coffee plantation hills */}
       <path d="M0 108 Q80 75 160 95 Q240 70 320 88 Q370 78 400 100 L400 120 L0 120Z" fill="url(#mist3)" />
-      {/* Mist layer */}
-      <rect x="0" y="85" width="400" height="35" fill="white" opacity="0.25" />
     </svg>
   );
 }
@@ -189,10 +195,11 @@ function HomeScreen() {
 
   return (
     <div style={{ padding: 0 }}>
-      {/* Hero Banner with Mountains */}
+      {/* Hero Banner — uses public/venue-photo.jpg or venue-photo.png if present, else fallback */}
       <div style={{
-        background: `linear-gradient(170deg, #1A3409 0%, #2D5016 35%, #3D6B22 60%, #4A7C2E 100%)`,
+        background: `linear-gradient(180deg, rgba(26,52,9,0.85) 0%, rgba(45,80,22,0.7) 40%, rgba(45,80,22,0.85) 100%), url("/venue-photo.jpg") center/cover no-repeat, url("/venue-photo.png") center/cover no-repeat, url("${HERO_BG_FALLBACK}") center/cover no-repeat`,
         padding: "36px 24px 0", textAlign: "center", position: "relative", overflow: "hidden",
+        minHeight: 320,
       }}>
         {/* Decorative coffee beans */}
         <CoffeeBeanDecor style={{ position: "absolute", top: 12, left: 20, transform: "rotate(30deg)" }} />
@@ -478,19 +485,21 @@ function VenueScreen() {
         <p style={{ fontSize: 12, color: theme.textMuted }}>Federation of Kodava Samaja</p>
       </div>
 
-      {/* Map / Illustration */}
+      {/* Interactive Google Map */}
       <div style={{
-        height: 180, borderRadius: 20, overflow: "hidden", marginBottom: 18, position: "relative",
-        background: `linear-gradient(170deg, #2D5016 0%, #3D6B22 40%, #5A8A3C 70%, #7BA85E 100%)`,
+        height: 200, borderRadius: 20, overflow: "hidden", marginBottom: 18,
+        border: `1px solid ${theme.mist}`,
       }}>
-        <MistyMountains />
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 36, marginBottom: 4, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}>📍</div>
-            <p style={{ fontSize: 14, color: "white", fontWeight: 600, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>Interactive Map</p>
-            <p style={{ fontSize: 11, color: "#C5D1BF" }}>Google Maps embed here</p>
-          </div>
-        </div>
+        <iframe
+          src={VENUE_MAP_EMBED}
+          width="100%"
+          height="100%"
+          style={{ border: 0, display: "block" }}
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Venue location - Federation of Kodava Samaja"
+        />
       </div>
 
       <div style={{ background: theme.card, borderRadius: 20, padding: 22, boxShadow: "0 2px 16px rgba(45,80,22,0.06)", border: `1px solid ${theme.mist}`, marginBottom: 14 }}>
@@ -501,13 +510,19 @@ function VenueScreen() {
           Karnataka, India
         </p>
 
-        <button style={{
-          width: "100%", padding: "12px", borderRadius: 30, border: `1.5px solid ${theme.accent}`,
-          background: "transparent", color: theme.accent, fontSize: 14, fontWeight: 600, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14,
-        }}>
+        <a
+          href="https://www.google.com/maps/search/Federation+of+Kodava+Samaja+Balugodu+Kodagu"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            width: "100%", padding: "12px", borderRadius: 30, border: `1.5px solid ${theme.accent}`,
+            background: "transparent", color: theme.accent, fontSize: 14, fontWeight: 600, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14,
+            textDecoration: "none", boxSizing: "border-box",
+          }}
+        >
           Open in Google Maps <Icons.ExternalLink />
-        </button>
+        </a>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {[
@@ -911,11 +926,22 @@ function NotificationsScreen() {
 // ========== MAIN APP ==========
 export default function WeddingApp() {
   const [screen, setScreen] = useState("home");
+  const [currentTime, setCurrentTime] = useState(() =>
+    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  );
   const scrollRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [screen]);
+
+  useEffect(() => {
+    const tick = () =>
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    tick();
+    const id = setInterval(tick, 60000); // Update every minute
+    return () => clearInterval(id);
+  }, []);
 
   const screenMap = { home: HomeScreen, rsvp: RSVPScreen, schedule: ScheduleScreen, venue: VenueScreen, stay: StayScreen, notifications: NotificationsScreen };
   const iconMap = { home: Icons.Home, rsvp: Icons.RSVP, schedule: Icons.Schedule, venue: Icons.Venue, stay: Icons.Stay, notifications: Icons.Bell };
@@ -937,24 +963,11 @@ export default function WeddingApp() {
       }}>
         {/* Status Bar */}
         <div style={{
-          padding: "12px 28px 8px", display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "12px 28px 8px", display: "flex", justifyContent: "center", alignItems: "center",
           flexShrink: 0, background: screen === "home" ? theme.accentDark : theme.bg,
           transition: "background 0.3s",
         }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: screen === "home" ? "#fff" : theme.text }}>9:41</span>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <svg width="16" height="12" viewBox="0 0 16 12">
-              <rect x="0" y="7" width="3" height="5" rx="0.5" fill={screen === "home" ? "#fff" : theme.text}/>
-              <rect x="4.5" y="4" width="3" height="8" rx="0.5" fill={screen === "home" ? "#fff" : theme.text}/>
-              <rect x="9" y="1" width="3" height="11" rx="0.5" fill={screen === "home" ? "#fff" : theme.text}/>
-              <rect x="13" y="0" width="3" height="12" rx="0.5" fill={screen === "home" ? "#fff" : theme.text} opacity="0.3"/>
-            </svg>
-            <svg width="24" height="12" viewBox="0 0 24 12">
-              <rect x="0" y="0" width="21" height="12" rx="2" stroke={screen === "home" ? "#fff" : theme.text} strokeWidth="1" fill="none"/>
-              <rect x="22" y="4" width="2" height="4" rx="0.5" fill={screen === "home" ? "#fff" : theme.text}/>
-              <rect x="1.5" y="1.5" width="15" height="9" rx="1" fill={theme.accent}/>
-            </svg>
-          </div>
+          <span style={{ fontSize: 14, fontWeight: 600, color: screen === "home" ? "#fff" : theme.text }}>{currentTime}</span>
         </div>
 
         {/* Content */}
@@ -964,7 +977,7 @@ export default function WeddingApp() {
 
         {/* Bottom Nav */}
         <div style={{
-          display: "flex", justifyContent: "space-around", alignItems: "center",
+          display: "flex", justifyContent: "space-between", alignItems: "stretch",
           padding: "6px 4px 18px", background: theme.card, flexShrink: 0,
           borderTop: `1px solid ${theme.mist}`,
         }}>
@@ -973,17 +986,18 @@ export default function WeddingApp() {
             const active = screen === s;
             return (
               <button key={s} onClick={() => setScreen(s)} style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                background: "none", border: "none", cursor: "pointer", padding: "4px 8px",
-                color: active ? theme.accent : theme.textMuted, transition: "color 0.2s",
-                position: "relative",
+                flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                gap: 2, minWidth: 0, background: "none", border: "none", cursor: "pointer", padding: "4px 2px",
+                color: active ? theme.accent : theme.textMuted, transition: "color 0.2s", position: "relative",
               }}>
                 {active && <div style={{
                   position: "absolute", top: -7, width: 20, height: 3, borderRadius: 2,
                   background: theme.accent,
                 }} />}
-                <Icon />
-                <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, letterSpacing: 0.3 }}>{labelMap[s]}</span>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 22 }}>
+                  <Icon />
+                </span>
+                <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, letterSpacing: 0.3, lineHeight: 1 }}>{labelMap[s]}</span>
               </button>
             );
           })}

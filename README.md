@@ -26,13 +26,24 @@ git push -u origin main
 1. Go to [vercel.com](https://vercel.com) and sign in with GitHub
 2. Click **"New Project"**
 3. Import your `wedding-app` repo
-4. Click **"Deploy"** — that's it!
+4. **Add environment variables** (from `.env.example`) in Project Settings → Environment Variables
+5. Click **"Deploy"** — that's it!
 
 ### Step 3: Share the Link
 Vercel gives you a URL like `wedding-app.vercel.app`.
 Share it with your friend — it works on phones, tablets, and desktops.
 
 **Custom domain?** In Vercel dashboard → Settings → Domains → add `mokshasachin.com`
+
+### Updating the live site (after you make changes)
+
+```bash
+git add .
+git commit -m "Describe your changes"
+git push
+```
+
+Vercel automatically redeploys when you push to GitHub. Your live site updates in 1–2 minutes.
 
 ---
 
@@ -68,9 +79,10 @@ This app includes a web manifest so guests can install it like a native app:
 All content is in `src/App.jsx`:
 - **Names & dates**: Search for "Moksha" and "Sachin"
 - **Colors**: Edit the `theme` object at the top
+- **Hero background image**: Add your photo to the `public/` folder and name it `venue-photo.jpg` or `venue-photo.png` — it will automatically appear as the landing screen background. See `public/HERO_IMAGE_README.txt` for details.
 - **Events**: Edit the `events` array in `ScheduleScreen`
 - **Stays**: Edit the `stays` array in `StayScreen`
-- **Venue**: Edit details in `VenueScreen`
+- **Venue**: Edit details in `VenueScreen`. Map uses OpenStreetMap with a red pin. To change location: update `VENUE_LAT` and `VENUE_LNG` in `App.jsx`. For Google Maps instead: get embed URL from Google Maps → Share → Embed → paste into `VENUE_MAP_EMBED`
 
 ---
 

@@ -1,8 +1,8 @@
 // =============================================================
-// FIREBASE CONFIGURATION
+// FIREBASE CONFIGURATION — Uses environment variables
 // =============================================================
-// Follow SETUP_GUIDE.md to get these values from your Firebase Console.
-// Replace ALL placeholder values below with your actual Firebase config.
+// Set values in .env (copy from .env.example). Never commit .env to Git.
+// For Vercel: add env vars in Project Settings → Environment Variables
 // =============================================================
 
 import { initializeApp } from "firebase/app";
@@ -15,37 +15,40 @@ import {
 } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyARTZ1rAq0g0dW11ew9eLI1q8rCKALhyPs",
-  authDomain: "moksha-sachin-wedding.firebaseapp.com",
-  projectId: "moksha-sachin-wedding",
-  storageBucket: "moksha-sachin-wedding.firebasestorage.app",
-  messagingSenderId: "830433030837",
-  appId: "1:830433030837:web:af0df19896c3c5c3fd84fc",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// VAPID key for push notifications (get from Firebase Console → Cloud Messaging)
-export const VAPID_KEY =
-  "BNtgvFlIsDHmW9q3t3fAkm1y9b8GGVUT_mJFezlUpSGSJQ_2W_3dy6OUycZ2nbT2wy-KFSA3tT5FvWUjy2SCOgE";
+export const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+export const GOOGLE_SHEETS_URL = import.meta.env.VITE_GOOGLE_SHEETS_URL;
 
-// Google Sheets Web App URL — must be the FULL URL from Deploy → Web app (starts with https://, ends with /exec)
-export const GOOGLE_SHEETS_URL =
-  "https://script.google.com/macros/s/AKfycbwD51O3ZpvR6c2qHBj-bNIbEQAZjWYOMaKy5nntdNlHuN2TyOKFR-btSNE1iPmpQ5nx/exec";
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// Initialize Firebase (only if config is present)
+let app = null;
+let db = null;
+if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+}
+export { db };
 
 // Messaging (only works in browser, not SSR)
 let messaging = null;
-try {
-  messaging = getMessaging(app);
-} catch (e) {
-  console.log("Firebase Messaging not supported in this environment");
+if (app) {
+  try {
+    messaging = getMessaging(app);
+  } catch (e) {
+    console.log("Firebase Messaging not supported in this environment");
+  }
 }
 export { messaging };
 
 // --- RSVP: Save to Google Sheets ---
 export async function submitRSVPToSheets(formData) {
+  if (!GOOGLE_SHEETS_URL) return { success: false, error: "No Sheets URL configured" };
   try {
     const response = await fetch(GOOGLE_SHEETS_URL, {
       method: "POST",
@@ -65,6 +68,7 @@ export async function submitRSVPToSheets(formData) {
 
 // --- RSVP: Also save to Firebase (backup + for linking notifications) ---
 export async function submitRSVPToFirebase(formData) {
+  if (!db) return { success: false, error: "Firebase not configured" };
   try {
     const docRef = await addDoc(collection(db, "rsvps"), {
       ...formData,
@@ -80,6 +84,7 @@ export async function submitRSVPToFirebase(formData) {
 // --- Push Notifications: Request permission & get token ---
 export async function requestNotificationPermission() {
   if (!messaging) return { success: false, reason: "Messaging not supported" };
+  if (!VAPID_KEY) return { success: false, reason: "VAPID key not configured" };
 
   try {
     const permission = await Notification.requestPermission();
@@ -99,11 +104,13 @@ export async function requestNotificationPermission() {
     if (token) {
       console.log("FCM Token (copy for Firebase test message):", token);
       // Save token to Firestore for sending notifications later
-      await addDoc(collection(db, "notification_tokens"), {
+      if (db) {
+        await addDoc(collection(db, "notification_tokens"), {
         token,
         createdAt: serverTimestamp(),
         userAgent: navigator.userAgent,
       });
+      }
       return { success: true, token };
     }
     return { success: false, reason: "No token received" };
@@ -116,6 +123,7 @@ export async function requestNotificationPermission() {
 // --- Get FCM token when permission is already granted (for copying / testing) ---
 export async function getFCMTokenIfGranted() {
   if (!messaging || Notification.permission !== "granted") return null;
+  if (!VAPID_KEY) return null;
   try {
     // Register and wait for service worker to be active before getToken
     await navigator.serviceWorker.register("/firebase-messaging-sw.js");

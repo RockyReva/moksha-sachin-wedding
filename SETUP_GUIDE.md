@@ -8,6 +8,26 @@ here is free at wedding scale.
 
 ---
 
+## 🔒 SECURITY: API Keys (Important)
+
+**Never commit API keys or secrets to GitHub.** This app uses environment variables:
+
+- **Local:** Create `.env` from `.env.example` and fill in your values. `.env` is gitignored.
+- **Vercel:** Add the same variables in Project Settings → Environment Variables
+- **If you got a "suspicious activity" email from Google:** Your API key was exposed. Regenerate it:
+  1. Go to [Google Cloud Console](https://console.cloud.google.com) → Credentials
+  2. Find your API key → Edit → **Regenerate key**
+  3. Update your `.env` file with the new key
+  4. Add API key restrictions: **Application restrictions** → HTTP referrers → add `localhost:*` and `*.vercel.app/*`
+
+**Migrating from old setup (keys in code):**
+1. Copy `.env.example` to `.env` and paste your values from the old `firebase.js` and `firebase-messaging-sw.js`
+2. Regenerate the Firebase API key (see above)
+3. Remove the old file from Git: `git rm --cached public/firebase-messaging-sw.js`
+4. Run `npm run dev` — the service worker will be generated from `.env`
+
+---
+
 ## PART 1: Google Sheets (RSVP Storage) — ~10 minutes
 
 This lets RSVPs land in a Google Spreadsheet your friend can view and manage.
@@ -42,15 +62,11 @@ This lets RSVPs land in a Google Spreadsheet your friend can view and manage.
 
 ### Step 3: Add the URL to Your App
 
-Open `src/firebase.js` and replace the placeholder with your **entire** Web App URL:
-```js
-export const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+Add the full Web App URL to your `.env` file (create it from `.env.example` if needed):
 ```
-Paste your full URL so it looks like this (with your real deployment ID):
-```js
-export const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbx...your-long-id.../exec";
+VITE_GOOGLE_SHEETS_URL=https://script.google.com/macros/s/AKfycbx...your-long-id.../exec
 ```
-If you only paste the long ID without `https://script.google.com/macros/s/` and `/exec`, RSVPs will not appear in the sheet.
+The URL must start with `https://script.google.com/macros/s/` and end with `/exec`.
 
 ### Step 4: Test It
 
@@ -89,22 +105,24 @@ const firebaseConfig = {
 
 6. **Copy these values.**
 
-### Step 3: Paste Config into Your App
+### Step 3: Add Config via Environment Variables (Secure — Never Commit Keys)
 
-Open `src/firebase.js` and replace the placeholder config:
-
-```js
-const firebaseConfig = {
-  apiKey: "AIzaSyB...",             // ← your actual value
-  authDomain: "moksha-sachin-wedding.firebaseapp.com",
-  projectId: "moksha-sachin-wedding",
-  storageBucket: "moksha-sachin-wedding.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123",
-};
-```
-
-**Also** open `public/firebase-messaging-sw.js` and paste the **same config** there.
+1. Copy the example env file:
+   ```powershell
+   copy .env.example .env
+   ```
+2. Open `.env` and fill in your Firebase values (and Google Sheets URL from Part 1):
+   ```
+   VITE_FIREBASE_API_KEY=AIzaSy...
+   VITE_FIREBASE_AUTH_DOMAIN=moksha-sachin-wedding.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=moksha-sachin-wedding
+   VITE_FIREBASE_STORAGE_BUCKET=moksha-sachin-wedding.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+   VITE_FIREBASE_APP_ID=1:123456789:web:abc123
+   VITE_FIREBASE_VAPID_KEY=   (from Step 5 below)
+   VITE_GOOGLE_SHEETS_URL=    (from Part 1)
+   ```
+3. **Never commit `.env`** — it's in `.gitignore`. The service worker is generated at build time from `.env`.
 
 ### Step 4: Enable Firestore Database
 
@@ -119,15 +137,10 @@ const firebaseConfig = {
 1. In Firebase Console → **Project Settings** (gear icon) → **Cloud Messaging** tab
 2. Under **Web Push certificates**, click **Generate key pair**
 3. Copy the key (a long string starting with `B...`)
-4. Open `src/firebase.js` and replace:
-
-```js
-export const VAPID_KEY = "YOUR_VAPID_KEY";
-```
-with your actual key:
-```js
-export const VAPID_KEY = "BHx7a...your-actual-key";
-```
+4. Add the VAPID key to your `.env` file:
+   ```
+   VITE_FIREBASE_VAPID_KEY=BHx7a...your-actual-key
+   ```
 
 ### Step 6: Test Push Notifications
 
@@ -234,11 +247,39 @@ Replace `YOUR_USERNAME` with your actual GitHub username. When prompted for pass
 2. Click **Add New** → **Project**
 3. Import your `moksha-sachin-wedding` repository (it should appear in the list)
 4. Click **Import**
-5. Vercel will detect it's a Vite project. Click **Deploy** (don't change any settings)
-6. Wait 1–2 minutes. Your site will be live at `https://moksha-sachin-wedding.vercel.app` (or a similar URL)
-7. Share this URL with guests!
+5. **Add environment variables** before deploying: Project Settings → Environment Variables → add each variable from `.env` (VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, etc.). Use the same names as in `.env.example`.
+6. Vercel will detect it's a Vite project. Click **Deploy** (don't change any settings)
+7. Wait 1–2 minutes. Your site will be live at `https://moksha-sachin-wedding.vercel.app` (or a similar URL)
+8. Share this URL with guests!
 
-**To update the site later:** Edit your code, then run `git add .` → `git commit -m "Update"` → `git push`. Vercel will automatically redeploy.
+**Step 6: Propagate changes to GitHub and Vercel (when you make edits)**
+
+Whenever you change the app (e.g. update text, add venue photo, fix the map), push your changes so the live site updates:
+
+1. Open PowerShell or Terminal and go to your project folder:
+   ```powershell
+   cd C:\Users\ckani\Downloads\moksha-sachin-wedding\wedding-deploy
+   ```
+
+2. Stage all changes:
+   ```powershell
+   git add .
+   ```
+
+3. Commit with a short message describing what you changed:
+   ```powershell
+   git commit -m "Add venue photo and update map"
+   ```
+   (Use any message, e.g. "Fix RSVP form", "Update schedule", "Add hero image")
+
+4. Push to GitHub:
+   ```powershell
+   git push
+   ```
+
+5. **That's it!** Vercel automatically detects the push and redeploys your site within 1–2 minutes. No need to do anything on Vercel — just wait and refresh your live URL.
+
+**Tip:** Run `git status` anytime to see which files have changed.
 
 ---
 
@@ -257,7 +298,24 @@ Replace `YOUR_USERNAME` with your actual GitHub username. When prompted for pass
 5. Vercel will build and deploy. You'll get a URL like `https://wedding-deploy-xxx.vercel.app`
 6. Share this URL with guests!
 
-**To update later:** Run `npx vercel` again from the same folder, or switch to Option A for automatic updates.
+**To update later:** Run `npx vercel` again from the same folder. Each run creates a new deployment. For automatic updates on every change, switch to Option A (GitHub).
+
+---
+
+## PART 4b: Updating Your Live Site (GitHub + Vercel)
+
+If you used **Option A** (GitHub), use this workflow whenever you make edits:
+
+| Step | Command / Action |
+|------|------------------|
+| 1. Make your edits | Edit files in your project (e.g. in Cursor) |
+| 2. Open terminal | PowerShell or Terminal in your project folder |
+| 3. Stage changes | `git add .` |
+| 4. Commit | `git commit -m "Describe your changes"` |
+| 5. Push | `git push` |
+| 6. Wait | Vercel auto-redeploys in 1–2 minutes |
+
+Your live site at `your-app.vercel.app` will update automatically. No need to log in to Vercel.
 
 ---
 
@@ -280,17 +338,18 @@ but wedding-scale usage would cost < ₹100 total).
 
 ---
 
-## Summary: What You Need to Replace
+## Summary: What Goes in `.env` (and Vercel Environment Variables)
 
-| File | Placeholder | What to Put |
-|------|-------------|-------------|
-| `src/firebase.js` | `YOUR_API_KEY` | Firebase API key |
-| `src/firebase.js` | `YOUR_PROJECT_ID` | Firebase project ID |
-| `src/firebase.js` | `YOUR_SENDER_ID` | Firebase sender ID |
-| `src/firebase.js` | `YOUR_APP_ID` | Firebase app ID |
-| `src/firebase.js` | `YOUR_VAPID_KEY` | Web push VAPID key |
-| `src/firebase.js` | `YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL` | Google Apps Script URL |
-| `public/firebase-messaging-sw.js` | Same Firebase config | Same values as above |
+| Variable | What to Put |
+|----------|-------------|
+| `VITE_FIREBASE_API_KEY` | Firebase API key |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `your-project.firebaseapp.com` |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase project ID |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase sender ID |
+| `VITE_FIREBASE_APP_ID` | Firebase app ID |
+| `VITE_FIREBASE_VAPID_KEY` | Web push VAPID key |
+| `VITE_GOOGLE_SHEETS_URL` | Full Google Apps Script Web App URL |
 
 ---
 
