@@ -413,6 +413,18 @@ function HomeScreen({ onNavigate }) {
           })}
           <LiveWeatherCard />
         </div>
+
+        <p style={{
+          fontSize: 11, color: theme.gold, textAlign: "center", marginTop: 24, marginBottom: 20, fontStyle: "italic",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 4, flexWrap: "wrap",
+        }}>
+          <span>✨</span>
+          App created and presented by Mandara Boys
+          <span style={{ display: "inline-flex", alignItems: "center", color: theme.gold }} title="15 friends">
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>groups</span>
+          </span>
+          <span>✨</span>
+        </p>
       </div>
     </div>
   );
@@ -550,33 +562,52 @@ function ScheduleScreen() {
 
       <div style={{ position: "relative", paddingLeft: 30 }}>
         <div style={{ position: "absolute", left: 11, top: 8, bottom: 8, width: 2, background: `linear-gradient(180deg, ${theme.accent}, ${theme.mistDark}, ${theme.coffee})`, borderRadius: 1 }} />
-        {SCHEDULE_EVENTS.map((ev, i) => (
-          <div key={i} style={{ position: "relative", marginBottom: 14 }}>
-            <div style={{
-              position: "absolute", left: -23, top: 16, width: 12, height: 12, borderRadius: "50%",
-              background: i === 5 ? theme.gold : theme.accent,
-              border: `3px solid ${theme.bg}`, boxShadow: `0 0 0 2px ${i === 5 ? theme.gold : theme.accent}30`,
-            }} />
-            <div style={{
-              background: i === 5 ? `linear-gradient(135deg, #FFF9ED, #FFFDF7)` : theme.card,
-              borderRadius: 16, padding: "14px 16px",
-              boxShadow: "0 2px 10px rgba(45,80,22,0.05)",
-              border: `1px solid ${i === 5 ? theme.gold + "40" : theme.mist}`,
-            }}>
-              <div style={{ fontSize: 10, color: theme.accent, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 5 }}>
-                {ev.time}
+        {SCHEDULE_EVENTS.map((ev, i) => {
+          const isWedding = ev.title.includes("Dampathi Muhurtha");
+          const photos = ev.photos || [];
+          return (
+            <div key={i} style={{ position: "relative", marginBottom: 18 }}>
+              <div style={{
+                position: "absolute", left: -23, top: 24, width: 12, height: 12, borderRadius: "50%",
+                background: isWedding ? theme.gold : theme.accent,
+                border: `3px solid ${theme.bg}`, boxShadow: `0 0 0 2px ${isWedding ? theme.gold : theme.accent}30`,
+              }} />
+              <div style={{
+                background: isWedding ? `linear-gradient(135deg, #FFF9ED, #FFFDF7)` : theme.card,
+                borderRadius: 16, overflow: "hidden",
+                boxShadow: "0 2px 10px rgba(45,80,22,0.05)",
+                border: `1px solid ${isWedding ? theme.gold + "40" : theme.mist}`,
+              }}>
+                {photos.length > 0 && (
+                  <div style={{
+                    display: "grid", gridTemplateColumns: photos.length === 2 ? "1fr 1fr" : "1fr",
+                    gap: 4, padding: 4, paddingBottom: 0,
+                  }}>
+                    {photos.map((p, j) => (
+                      <img key={j} src={`/${p}`} alt="" style={{
+                        width: "100%", aspectRatio: photos.length === 2 ? "4/3" : "16/10",
+                        objectFit: "cover", borderRadius: 12,
+                      }} />
+                    ))}
+                  </div>
+                )}
+                <div style={{ padding: "14px 16px" }}>
+                  <div style={{ fontSize: 10, color: theme.accent, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 5 }}>
+                    {ev.time}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 20 }}>{ev.icon}</span>
+                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, color: theme.text }}>{ev.title}</span>
+                  </div>
+                  <p style={{ fontSize: 12.5, color: theme.textMuted, lineHeight: 1.55, margin: "0 0 8px" }}>{ev.desc}</p>
+                  <p style={{ fontSize: 11, color: theme.textMuted, display: "flex", alignItems: "center", gap: 4, margin: 0 }}>
+                    <span style={{ color: theme.accent }}><Icons.Venue /></span> {ev.location}
+                  </p>
+                </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                <span style={{ fontSize: 20 }}>{ev.icon}</span>
-                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 19, fontWeight: 600, color: theme.text }}>{ev.title}</span>
-              </div>
-              <p style={{ fontSize: 12.5, color: theme.textMuted, lineHeight: 1.5, margin: "0 0 4px" }}>{ev.desc}</p>
-              <p style={{ fontSize: 11, color: theme.textMuted, display: "flex", alignItems: "center", gap: 4, margin: 0 }}>
-                <span style={{ color: theme.accent }}><Icons.Venue /></span> {ev.location}
-              </p>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1069,7 +1100,7 @@ export default function WeddingApp() {
     { id: "notifications", label: "Alerts", icon: "notifications" },
   ];
   const navActive = "#B8860B";
-  const navInactive = "#C9A227";
+  const navInactive = "#4A5F2E";
 
   const Screen = screenMap[screen];
 
