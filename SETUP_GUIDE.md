@@ -302,20 +302,83 @@ Whenever you change the app (e.g. update text, add venue photo, fix the map), pu
 
 ---
 
-## PART 4b: Updating Your Live Site (GitHub + Vercel)
+## PART 4b: Push Updates to Git and Vercel
 
-If you used **Option A** (GitHub), use this workflow whenever you make edits:
+Whenever you make changes to the app (text, images, styling, features), follow these steps to update your live site.
 
-| Step | Command / Action |
-|------|------------------|
-| 1. Make your edits | Edit files in your project (e.g. in Cursor) |
-| 2. Open terminal | PowerShell or Terminal in your project folder |
-| 3. Stage changes | `git add .` |
-| 4. Commit | `git commit -m "Describe your changes"` |
-| 5. Push | `git push` |
-| 6. Wait | Vercel auto-redeploys in 1–2 minutes |
+### Step-by-step workflow
 
-Your live site at `your-app.vercel.app` will update automatically. No need to log in to Vercel.
+**1. Open a terminal in your project folder**
+
+```powershell
+cd C:\Users\ckani\Downloads\moksha-sachin-wedding\wedding-deploy
+```
+
+(Or your actual project path.)
+
+**2. Check what has changed**
+
+```powershell
+git status
+```
+
+This lists modified, added, or deleted files.
+
+**3. Stage all changes**
+
+```powershell
+git add .
+```
+
+Or stage specific files: `git add src/App.jsx public/venue-photo.jpg`
+
+**4. Commit with a descriptive message**
+
+```powershell
+git commit -m "Update venue map and add weather link"
+```
+
+Examples: `"Fix RSVP form"`, `"Add hero image"`, `"Update schedule dates"`, `"Change bottom nav colors"`
+
+**5. Push to GitHub**
+
+```powershell
+git push
+```
+
+If this is your first push from this machine, you may need:
+
+```powershell
+git push -u origin main
+```
+
+**6. Vercel auto-deploys**
+
+Vercel detects the push and rebuilds your site. In 1–2 minutes, your live URL (e.g. `https://moksha-sachin-wedding.vercel.app`) will show the updates. No need to log in to Vercel.
+
+### Quick reference
+
+| Step | Command |
+|------|---------|
+| See changes | `git status` |
+| Stage all | `git add .` |
+| Commit | `git commit -m "Your message"` |
+| Push to GitHub | `git push` |
+
+### If you get errors
+
+**"fatal: not a git repository"**  
+→ Run `git init` first. If the project was never pushed, follow **Step 4** in Option A (create repo on GitHub, add remote, push).
+
+**"Updates were rejected"**  
+→ Someone else pushed changes. Run `git pull` then `git push`.
+
+**"Authentication failed"**  
+→ Use a [Personal Access Token](https://github.com/settings/tokens) instead of your password when Git asks for credentials.
+
+### If you deployed without GitHub (Option B)
+
+Run `npx vercel` again from your project folder. Each run creates a new deployment. For automatic updates on every push, connect your project to GitHub (Vercel Dashboard → Project Settings → Git).
 
 ---
 

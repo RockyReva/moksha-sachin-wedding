@@ -6,6 +6,7 @@ import {
   onForegroundMessage,
   getFCMTokenIfGranted,
 } from "./firebase";
+import { WEDDING_DATE, SCHEDULE_EVENTS, RSVP_DEADLINE, WEDDING_DATES_DISPLAY } from "./schedule-data";
 
 const SCREENS = ["home", "rsvp", "schedule", "venue", "stay", "notifications"];
 
@@ -16,6 +17,8 @@ const HERO_BG_FALLBACK = "https://images.unsplash.com/photo-1509042239860-f550ce
 const VENUE_LAT = 12.198;
 const VENUE_LNG = 75.7365;
 const VENUE_MAP_EMBED = `https://www.openstreetmap.org/export/embed.html?bbox=75.5%2C12.0%2C76.8%2C12.5&marker=${VENUE_LAT}%2C${VENUE_LNG}&layer=mapnik`;
+const WEATHER_URL = "https://www.accuweather.com/en/in/madikeri/188779/weather-forecast/188779";
+const WEATHER_API = `https://api.open-meteo.com/v1/forecast?latitude=${VENUE_LAT}&longitude=${VENUE_LNG}&current=temperature_2m,weather_code,relative_humidity_2m,apparent_temperature&timezone=auto`;
 
 // --- Coorg Coffee Estate Color Palette ---
 const theme = {
@@ -38,34 +41,35 @@ const theme = {
 };
 
 // --- SVG Icons ---
+const sw = (p) => p?.strokeWidth ?? 1.8;
 const Icons = {
-  Home: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  Home: (p) => (
+    <svg width={p?.nav ? 24 : 22} height={p?.nav ? 24 : 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw(p)} strokeLinecap="round" strokeLinejoin="round" shapeRendering="geometricPrecision" style={{ flexShrink: 0 }}>
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
     </svg>
   ),
-  RSVP: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  RSVP: (p) => (
+    <svg width={p?.nav ? 24 : 22} height={p?.nav ? 24 : 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw(p)} strokeLinecap="round" strokeLinejoin="round" shapeRendering="geometricPrecision" style={{ flexShrink: 0 }}>
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
     </svg>
   ),
-  Schedule: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  Schedule: (p) => (
+    <svg width={p?.nav ? 24 : 22} height={p?.nav ? 24 : 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw(p)} strokeLinecap="round" strokeLinejoin="round" shapeRendering="geometricPrecision" style={{ flexShrink: 0 }}>
       <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
     </svg>
   ),
-  Venue: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  Venue: (p) => (
+    <svg width={p?.nav ? 24 : 22} height={p?.nav ? 24 : 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw(p)} strokeLinecap="round" strokeLinejoin="round" shapeRendering="geometricPrecision" style={{ flexShrink: 0 }}>
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
     </svg>
   ),
-  Stay: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  Stay: (p) => (
+    <svg width={p?.nav ? 24 : 22} height={p?.nav ? 24 : 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw(p)} strokeLinecap="round" strokeLinejoin="round" shapeRendering="geometricPrecision" style={{ flexShrink: 0 }}>
       <path d="M3 21h18M3 7v14M21 7v14M6 7V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v3M9 21v-4h6v4M9 10h1M14 10h1M9 14h1M14 14h1" />
     </svg>
   ),
-  Bell: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  Bell: (p) => (
+    <svg width={p?.nav ? 24 : 22} height={p?.nav ? 24 : 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw(p)} strokeLinecap="round" strokeLinejoin="round" shapeRendering="geometricPrecision" style={{ flexShrink: 0 }}>
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
   ),
@@ -190,8 +194,100 @@ function useCountdown(targetDate) {
 }
 
 // ========== HOME SCREEN ==========
-function HomeScreen() {
-  const countdown = useCountdown("2026-12-19T10:00:00");
+// WMO weather codes → emoji + label
+const WMO_WEATHER = {
+  0: { icon: "☀️", label: "Clear" },
+  1: { icon: "🌤️", label: "Mainly clear" },
+  2: { icon: "⛅", label: "Partly cloudy" },
+  3: { icon: "☁️", label: "Overcast" },
+  45: { icon: "🌫️", label: "Foggy" },
+  48: { icon: "🌫️", label: "Foggy" },
+  51: { icon: "🌦️", label: "Light drizzle" },
+  53: { icon: "🌦️", label: "Drizzle" },
+  55: { icon: "🌦️", label: "Dense drizzle" },
+  56: { icon: "🌦️", label: "Freezing drizzle" },
+  57: { icon: "🌦️", label: "Dense freezing drizzle" },
+  61: { icon: "🌧️", label: "Light rain" },
+  63: { icon: "🌧️", label: "Rain" },
+  65: { icon: "🌧️", label: "Heavy rain" },
+  66: { icon: "🌧️", label: "Light freezing rain" },
+  67: { icon: "🌧️", label: "Freezing rain" },
+  71: { icon: "❄️", label: "Light snow" },
+  73: { icon: "❄️", label: "Snow" },
+  75: { icon: "❄️", label: "Heavy snow" },
+  77: { icon: "❄️", label: "Snow grains" },
+  80: { icon: "🌧️", label: "Rain showers" },
+  81: { icon: "🌧️", label: "Rain showers" },
+  82: { icon: "🌧️", label: "Heavy rain showers" },
+  85: { icon: "❄️", label: "Snow showers" },
+  86: { icon: "❄️", label: "Heavy snow showers" },
+  95: { icon: "⛈️", label: "Thunderstorm" },
+  96: { icon: "⛈️", label: "Thunderstorm" },
+  99: { icon: "⛈️", label: "Thunderstorm" },
+};
+const getWeather = (code) => WMO_WEATHER[code] ?? { icon: "🌤️", label: "—" };
+
+function LiveWeatherCard() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch(WEATHER_API)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.current) setData(json.current);
+        else setError("No data");
+      })
+      .catch((err) => setError(err?.message || "Failed"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const cardStyle = {
+    background: theme.card, borderRadius: 14, padding: "12px 14px",
+    border: `1px solid ${theme.border}`, display: "flex", alignItems: "center", gap: 10,
+    textDecoration: "none", color: "inherit", cursor: "pointer",
+  };
+
+  const content = loading ? (
+    <>
+      <span style={{ fontSize: 22 }}>🌤️</span>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>Weather</div>
+        <div style={{ fontSize: 11, color: theme.textMuted }}>Loading…</div>
+      </div>
+    </>
+  ) : error ? (
+    <>
+      <span style={{ fontSize: 22 }}>🌤️</span>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>Weather</div>
+        <div style={{ fontSize: 11, color: theme.accent }}>Tap for forecast →</div>
+      </div>
+    </>
+  ) : (
+    <>
+      <span style={{ fontSize: 28 }}>{getWeather(data.weather_code).icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: theme.text }}>
+          {Math.round(data.temperature_2m)}°C
+        </div>
+        <div style={{ fontSize: 11, color: theme.textMuted }}>
+          {getWeather(data.weather_code).label} · {data.relative_humidity_2m}% humidity
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <a href={WEATHER_URL} target="_blank" rel="noopener noreferrer" style={cardStyle}>
+      {content}
+    </a>
+  );
+}
+
+function HomeScreen({ onNavigate }) {
+  const countdown = useCountdown(WEDDING_DATE);
 
   return (
     <div style={{ padding: 0 }}>
@@ -231,7 +327,7 @@ function HomeScreen() {
         </div>
 
         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: "#FFFFFF", fontWeight: 500, margin: "8px 0 2px" }}>
-          December 19–20, 2026
+          {WEDDING_DATES_DISPLAY}
         </p>
         <p style={{ fontSize: 12, color: "#A8C99A", lineHeight: 1.4, marginBottom: 8 }}>
           Kodagu, Karnataka · The Scotland of India
@@ -280,22 +376,42 @@ function HomeScreen() {
         {/* Quick Info Cards */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16, marginBottom: 20 }}>
           {[
-            { icon: "🌿", label: "2-Day", desc: "Celebration" },
-            { icon: "☕", label: "Kodava Samaja", desc: "Wedding Venue" },
-            { icon: "🏔️", label: "Coorg", desc: "Kodagu, Karnataka" },
-            { icon: "🌧️", label: "Dec Weather", desc: "18°C - 28°C" },
-          ].map((item, i) => (
-            <div key={i} style={{
+            { icon: "🎉", label: "2-Day", desc: "Celebration", screen: "schedule" },
+            { icon: "💒", label: "Kodava Samaja", desc: "Wedding Venue", screen: "venue" },
+            { icon: "🌿", label: "Coorg", desc: "Kodagu, Karnataka", url: "https://karnatakatourism.org/en/destinations/coorg" },
+          ].map((item, i) => {
+            const card = (
+              <>
+                <span style={{ fontSize: 22 }}>{item.icon}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{item.label}</div>
+                  <div style={{ fontSize: 11, color: theme.textMuted }}>{item.desc}</div>
+                </div>
+              </>
+            );
+            const style = {
               background: theme.card, borderRadius: 14, padding: "12px 14px",
               border: `1px solid ${theme.border}`, display: "flex", alignItems: "center", gap: 10,
-            }}>
-              <span style={{ fontSize: 22 }}>{item.icon}</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{item.label}</div>
-                <div style={{ fontSize: 11, color: theme.textMuted }}>{item.desc}</div>
-              </div>
-            </div>
-          ))}
+              cursor: (item.screen || item.url) ? "pointer" : "default",
+              textDecoration: "none", color: "inherit",
+            };
+            if (item.url) {
+              return (
+                <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" style={style}>
+                  {card}
+                </a>
+              );
+            }
+            if (item.screen && onNavigate) {
+              return (
+                <button key={i} onClick={() => onNavigate(item.screen)} style={{ ...style, border: "none", textAlign: "left", font: "inherit", width: "100%" }}>
+                  {card}
+                </button>
+              );
+            }
+            return <div key={i} style={style}>{card}</div>;
+          })}
+          <LiveWeatherCard />
         </div>
       </div>
     </div>
@@ -349,10 +465,10 @@ function RSVPScreen() {
   };
   const labelStyle = { fontSize: 11, fontWeight: 700, color: theme.coffee, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6, display: "block" };
 
-  const RadioGroup = ({ label, options, value, onChange }) => (
+  const RadioGroup = ({ label, options, value, onChange, centered }) => (
     <div style={{ marginBottom: 18 }}>
       <label style={labelStyle}>{label}</label>
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: centered ? "center" : "flex-start" }}>
         {options.map((opt) => (
           <button key={opt} onClick={() => onChange(opt)} style={{
             padding: "9px 16px", borderRadius: 30, border: `1.5px solid ${value === opt ? theme.accent : theme.border}`,
@@ -369,7 +485,7 @@ function RSVPScreen() {
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <span style={{ color: theme.accent, opacity: 0.5 }}><Icons.Leaf /></span>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: theme.text, margin: "6px 0 2px" }}>RSVP</h2>
-        <p style={{ fontSize: 12, color: theme.textMuted }}>Kindly respond by November 15, 2026</p>
+        <p style={{ fontSize: 12, color: theme.textMuted }}>Kindly respond by {RSVP_DEADLINE}</p>
       </div>
 
       <div style={{ background: theme.card, borderRadius: 20, padding: 22, boxShadow: "0 2px 16px rgba(45,80,22,0.06)", border: `1px solid ${theme.mist}` }}>
@@ -398,7 +514,7 @@ function RSVPScreen() {
           </div>
         </div>
 
-        <RadioGroup label="Meal Preference" options={["Veg", "Non-Veg", "Jain", "Vegan"]} value={form.meal} onChange={set("meal")} />
+        <RadioGroup label="Meal Preference" options={["Veg", "Non-Veg"]} value={form.meal} onChange={set("meal")} />
         <RadioGroup label="Drink Preference" options={["Cocktails", "Mocktails", "Coorg Coffee", "No Preference"]} value={form.drink} onChange={set("drink")} />
 
         <div style={{ marginBottom: 20 }}>
@@ -424,16 +540,6 @@ function RSVPScreen() {
 
 // ========== SCHEDULE SCREEN ==========
 function ScheduleScreen() {
-  const events = [
-    { time: "Dec 19 · 10:00 AM", title: "Mehendi & Haldi", location: "Samaja Garden Lawn", icon: "🌿", desc: "Henna, turmeric ceremony & light bites amidst the coffee plantation" },
-    { time: "Dec 19 · 1:00 PM", title: "Plantation Brunch", location: "Samaja Dining Hall", icon: "☕", desc: "Filter coffee, Coorgi cuisine & a guided coffee estate walk" },
-    { time: "Dec 19 · 5:00 PM", title: "Cocktail Evening", location: "Misty Hilltop Deck", icon: "🥂", desc: "Sundowner cocktails, live jazz & Western Ghats sunset views" },
-    { time: "Dec 19 · 8:00 PM", title: "Sangeet Night", location: "Samaja Open-Air Stage", icon: "🎶", desc: "Dance, music & a Kodava-style feast under the stars" },
-    { time: "Dec 20 · 9:00 AM", title: "Baraat Procession", location: "Samaja Main Entrance", icon: "🐘", desc: "The groom's grand arrival through the coffee rows" },
-    { time: "Dec 20 · 11:00 AM", title: "Wedding Ceremony", location: "Mandap, Samaja Grounds", icon: "💍", desc: "Sacred pheras overlooking the misty Kodagu hills" },
-    { time: "Dec 20 · 7:30 PM", title: "Grand Reception", location: "Samaja Grand Hall", icon: "🎉", desc: "Dinner, toasts, Coorgi Kathi Kali dance & celebrations" },
-  ];
-
   return (
     <div style={{ padding: "10px 20px 30px" }}>
       <div style={{ textAlign: "center", marginBottom: 20 }}>
@@ -444,7 +550,7 @@ function ScheduleScreen() {
 
       <div style={{ position: "relative", paddingLeft: 30 }}>
         <div style={{ position: "absolute", left: 11, top: 8, bottom: 8, width: 2, background: `linear-gradient(180deg, ${theme.accent}, ${theme.mistDark}, ${theme.coffee})`, borderRadius: 1 }} />
-        {events.map((ev, i) => (
+        {SCHEDULE_EVENTS.map((ev, i) => (
           <div key={i} style={{ position: "relative", marginBottom: 14 }}>
             <div style={{
               position: "absolute", left: -23, top: 16, width: 12, height: 12, borderRadius: "50%",
@@ -926,9 +1032,14 @@ function NotificationsScreen() {
 // ========== MAIN APP ==========
 export default function WeddingApp() {
   const [screen, setScreen] = useState("home");
-  const [currentTime, setCurrentTime] = useState(() =>
-    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  );
+  const now = () => new Date();
+  const [dateTime, setDateTime] = useState(() => {
+    const d = now();
+    return {
+      date: d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+      time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+  });
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -936,16 +1047,29 @@ export default function WeddingApp() {
   }, [screen]);
 
   useEffect(() => {
-    const tick = () =>
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    const tick = () => {
+      const d = now();
+      setDateTime({
+        date: d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+        time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      });
+    };
     tick();
     const id = setInterval(tick, 60000); // Update every minute
     return () => clearInterval(id);
   }, []);
 
   const screenMap = { home: HomeScreen, rsvp: RSVPScreen, schedule: ScheduleScreen, venue: VenueScreen, stay: StayScreen, notifications: NotificationsScreen };
-  const iconMap = { home: Icons.Home, rsvp: Icons.RSVP, schedule: Icons.Schedule, venue: Icons.Venue, stay: Icons.Stay, notifications: Icons.Bell };
-  const labelMap = { home: "Home", rsvp: "RSVP", schedule: "Schedule", venue: "Venue", stay: "Stay", notifications: "Alerts" };
+  const navItems = [
+    { id: "home", label: "Home", icon: "home" },
+    { id: "rsvp", label: "RSVP", icon: "mail" },
+    { id: "schedule", label: "Schedule", icon: "schedule" },
+    { id: "venue", label: "Venue", icon: "place" },
+    { id: "stay", label: "Stay", icon: "cottage" },
+    { id: "notifications", label: "Alerts", icon: "notifications" },
+  ];
+  const navActive = "#B8860B";
+  const navInactive = "#C9A227";
 
   const Screen = screenMap[screen];
 
@@ -967,41 +1091,48 @@ export default function WeddingApp() {
           flexShrink: 0, background: screen === "home" ? theme.accentDark : theme.bg,
           transition: "background 0.3s",
         }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: screen === "home" ? "#fff" : theme.text }}>{currentTime}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#B8860B" }}>{dateTime.date} · {dateTime.time}</span>
         </div>
 
         {/* Content */}
-        <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch" }}>
-          <Screen />
+        <div ref={scrollRef} className="app-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch" }}>
+          <Screen onNavigate={setScreen} />
         </div>
 
-        {/* Bottom Nav */}
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "stretch",
-          padding: "6px 4px 18px", background: theme.card, flexShrink: 0,
+        {/* Bottom Nav — Material Symbols */}
+        <nav style={{
+          display: "flex", justifyContent: "space-around", alignItems: "center",
+          padding: "12px 8px 20px", paddingBottom: "max(20px, env(safe-area-inset-bottom))",
+          background: theme.card, flexShrink: 0,
           borderTop: `1px solid ${theme.mist}`,
         }}>
-          {SCREENS.map((s) => {
-            const Icon = iconMap[s];
-            const active = screen === s;
+          {navItems.map((item) => {
+            const active = screen === item.id;
+            const color = active ? navActive : navInactive;
             return (
-              <button key={s} onClick={() => setScreen(s)} style={{
-                flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 2, minWidth: 0, background: "none", border: "none", cursor: "pointer", padding: "4px 2px",
-                color: active ? theme.accent : theme.textMuted, transition: "color 0.2s", position: "relative",
-              }}>
-                {active && <div style={{
-                  position: "absolute", top: -7, width: 20, height: 3, borderRadius: 2,
-                  background: theme.accent,
-                }} />}
-                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 22 }}>
-                  <Icon />
+              <button
+                key={item.id}
+                onClick={() => setScreen(item.id)}
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                  flex: 1, minWidth: 0, padding: "6px 4px", background: "none", border: "none", cursor: "pointer",
+                  color, transition: "color 0.2s",
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 26, color: "inherit" }}>
+                  {item.icon}
                 </span>
-                <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, letterSpacing: 0.3, lineHeight: 1 }}>{labelMap[s]}</span>
+                <span style={{
+                  fontSize: 11, fontWeight: active ? 600 : 500, color: "inherit",
+                  fontFamily: "'DM Sans', sans-serif",
+                  WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
+                }}>
+                  {item.label}
+                </span>
               </button>
             );
           })}
-        </div>
+        </nav>
       </div>
     </div>
   );
