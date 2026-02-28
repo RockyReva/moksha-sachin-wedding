@@ -9,7 +9,7 @@ export const ALERTS = [
   {
     id: "Book-roms",
     title: "Book Rooms now",
-    body: "Rooms may be sold out. Reserve soon and secure your spot.",
+    body: "Rooms are filling fast - Reserve now to guarantee your spot.",
     date: "2026-03-01",
     urgent: true,
   },
