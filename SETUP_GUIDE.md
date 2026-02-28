@@ -401,6 +401,116 @@ but wedding-scale usage would cost < ₹100 total).
 
 ---
 
+## PART 5b: Manual Alerts (In-App)
+
+**Manual alerts** appear inside the app for all guests — no Firebase or push setup needed. Add an alert in code, push to GitHub, and guests see it when they next open the app. Use this when Firebase push isn't working (e.g. on iPhone) or when you want a reliable fallback.
+
+### How it works
+
+- **Urgent alerts** (`urgent: true`) → Show a banner modal when the app loads. Guest clicks "Got it" to dismiss.
+- **Regular alerts** (`urgent: false`) → Appear only in the Alerts history (no banner).
+- **Badge** → Red number on the bell icon shows unread count.
+- **History** → All alerts appear in the Alerts tab, newest first. Tap to mark as read.
+
+### How to add an alert
+
+1. Open `src/alerts-data.js` in your project.
+2. Add a new object to the `ALERTS` array:
+
+```js
+{
+  id: "unique-id",           // One word, no spaces (e.g. shuttle-update)
+  title: "Short title",      // Shown in banner and list
+  body: "Full message...",   // The main content
+  date: "2026-12-19",        // YYYY-MM-DD (for sorting and display)
+  urgent: true,              // true = banner on load; false = history only
+},
+```
+
+3. Push to GitHub. Vercel redeploys. Guests see the alert on their next visit.
+
+### Realistic examples
+
+**Shuttle or transport change (urgent)**
+```js
+{
+  id: "shuttle-earlier",
+  title: "Shuttle departure time change",
+  body: "The shuttle from Madikeri will now depart at 8:45 AM instead of 9:00 AM. Please arrive at the pickup point 15 minutes earlier.",
+  date: "2026-12-18",
+  urgent: true,
+},
+```
+
+**Venue or room change (urgent)**
+```js
+{
+  id: "venue-room-change",
+  title: "Cocktail venue update",
+  body: "Due to weather, the cocktail evening has moved from the Misty Hilltop Deck to the Samaja Grand Hall. Same time — 5:00 PM.",
+  date: "2026-12-19",
+  urgent: true,
+},
+```
+
+**Schedule reminder (not urgent)**
+```js
+{
+  id: "sangeet-reminder",
+  title: "Sangeet Night tonight! 🎶",
+  body: "Starts at 8:00 PM at the Samaja Open-Air Stage. Get your dancing shoes ready!",
+  date: "2026-12-19",
+  urgent: false,
+},
+```
+
+**Welcome message (not urgent)**
+```js
+{
+  id: "welcome",
+  title: "Welcome to Our Wedding App! 🌿",
+  body: "We're thrilled you're joining us in Coorg. Explore the app for schedule, venue, and stay details!",
+  date: "2026-02-15",
+  urgent: false,
+},
+```
+
+**RSVP deadline (not urgent)**
+```js
+{
+  id: "rsvp-deadline",
+  title: "RSVP by November 15",
+  body: "Please confirm your attendance and meal preference by November 15, 2026. Tap RSVP in the app to respond.",
+  date: "2026-11-01",
+  urgent: false,
+},
+```
+
+**Last-minute parking info (urgent)**
+```js
+{
+  id: "parking-update",
+  title: "Parking update for wedding day",
+  body: "Additional parking is available at the coffee estate lot 200m past the main gate. Shuttle will run from there to the venue.",
+  date: "2026-12-20",
+  urgent: true,
+},
+```
+
+### Quick deploy workflow
+
+```powershell
+# 1. Edit src/alerts-data.js (add your alert)
+# 2. Commit and push
+git add src/alerts-data.js
+git commit -m "Add shuttle time change alert"
+git push
+```
+
+Vercel deploys in 1–2 minutes. Guests see the alert when they next open or refresh the app.
+
+---
+
 ## Summary: What Goes in `.env` (and Vercel Environment Variables)
 
 | Variable | What to Put |
@@ -430,10 +540,14 @@ but wedding-scale usage would cost < ₹100 total).
 **Firestore permission denied?**
 → Check Firestore Rules — make sure `allow create: if true` is set.
 
+**Manual alerts not showing?**
+→ Ensure each alert has a unique `id`. Push to GitHub and wait for Vercel to redeploy. Guests must refresh or reopen the app to see new alerts.
+
 ---
 
 That's it! Your wedding app now has:
 ✅ RSVPs saved to Google Sheets (easy for the family to view)
 ✅ RSVPs backed up in Firebase Firestore
 ✅ Real push notifications to guests' phones
+✅ Manual in-app alerts (edit `src/alerts-data.js` and push — works on all devices)
 ✅ Notification preferences per guest

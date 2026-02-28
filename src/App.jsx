@@ -8,6 +8,9 @@ import {
   getFCMTokenIfGranted,
 } from "./firebase";
 import { WEDDING_DATE, SCHEDULE_EVENTS, RSVP_DEADLINE, WEDDING_DATES_DISPLAY } from "./schedule-data";
+import { ALERTS } from "./alerts-data";
+
+const ALERTS_READ_KEY = "wedding-alerts-read";
 
 const colors = ["#E91E63", "#F06292", "#9C27B0", "#2196F3", "#42A5F5", "#00BCD4", "#4CAF50", "#66BB6A", "#2D5016", "#4a5d23", "#5C3D2E", "#6D4C41", "#8D6E63", "#C4972A", "#FFD700", "#B8860B", "#C0C0C0", "#B0BEC5", "#E0E0E0"];
 
@@ -925,7 +928,7 @@ function StayScreen() {
 }
 
 // ========== NOTIFICATIONS SCREEN ==========
-function NotificationsScreen() {
+function NotificationsScreen({ onNavigate, onConfetti, readAlertIds = [], markAlertRead, alertsSorted = [] }) {
   const [enabled, setEnabled] = useState({ events: true, schedule: true, travel: false, photos: false });
   const [pushStatus, setPushStatus] = useState("idle"); // idle | requesting | granted | denied | unsupported
   const [toastMessage, setToastMessage] = useState(null);
@@ -961,10 +964,16 @@ function NotificationsScreen() {
     setPushStatus(result.success ? "granted" : "denied");
   };
 
-  const notifications = [
-    { title: "RSVP Reminder", time: "1 week ago", desc: "Please confirm your attendance by November 15", unread: false },
-    { title: "Welcome to Our Wedding App! 🌿", time: "2 weeks ago", desc: "We're thrilled you're joining us in Coorg. Explore the app for all details!", unread: false },
-  ];
+  const formatAlertTime = (dateStr) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week(s) ago`;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
 
   return (
     <div style={{ padding: "10px 20px 30px" }}>
@@ -1072,24 +1081,63 @@ function NotificationsScreen() {
         ))}
       </div>
 
-      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: theme.text, marginBottom: 12 }}>Recent</h3>
-      {notifications.length === 0 ? (
+      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: theme.text, marginBottom: 12 }}>Alert History</h3>
+      {alertsSorted.length === 0 ? (
         <p style={{ fontSize: 12.5, color: theme.textMuted, padding: "16px 0", lineHeight: 1.5 }}>
-          No notifications yet. Event reminders and updates will appear here once you enable push notifications.
+          No alerts yet. Add alerts in alerts-data.js and push to GitHub to broadcast updates to guests.
         </p>
-      ) : notifications.map((n, i) => (
-        <div key={i} style={{
-          background: n.unread ? `${theme.accent}08` : theme.card, borderRadius: 14, padding: "12px 14px", marginBottom: 8,
-          border: `1px solid ${n.unread ? theme.accent + "25" : theme.border}`,
-        }}>
+      ) : alertsSorted.map((n) => {
+        const unread = !readAlertIds.includes(n.id);
+        return (
+        <div
+          key={n.id}
+          onClick={() => markAlertRead && markAlertRead(n.id)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && markAlertRead?.(n.id)}
+          style={{
+            background: unread ? `${theme.accent}08` : theme.card, borderRadius: 14, padding: "12px 14px", marginBottom: 8,
+            border: `1px solid ${unread ? theme.accent + "25" : theme.border}`,
+            cursor: "pointer",
+          }}
+        >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: theme.text }}>{n.title}</span>
-            {n.unread && <span style={{ width: 8, height: 8, borderRadius: "50%", background: theme.accent, flexShrink: 0 }} />}
+            <span style={{ fontSize: 13.5, fontWeight: unread ? 700 : 600, color: theme.text }}>{n.title}</span>
+            {unread && <span style={{ width: 8, height: 8, borderRadius: "50%", background: theme.accent, flexShrink: 0 }} />}
           </div>
-          <p style={{ fontSize: 12.5, color: theme.textMuted, margin: "0 0 3px", lineHeight: 1.5 }}>{n.desc}</p>
-          <span style={{ fontSize: 10.5, color: theme.textMuted }}>{n.time}</span>
+          <p style={{ fontSize: 12.5, color: theme.textMuted, margin: "0 0 3px", lineHeight: 1.5 }}>{n.body}</p>
+          <span style={{ fontSize: 10.5, color: theme.textMuted }}>{formatAlertTime(n.date)}</span>
         </div>
-      ))}
+        );
+      })}
+    </div>
+  );
+}
+
+// ========== ALERT BANNER (urgent, on load) ==========
+function AlertBanner({ alert, onDismiss }) {
+  if (!alert) return null;
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
+      background: "rgba(0,0,0,0.5)", padding: 24,
+    }}>
+      <div style={{
+        background: theme.card, borderRadius: 20, padding: 24, maxWidth: 340, width: "100%",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.3)", border: `1px solid ${theme.mist}`,
+      }}>
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: theme.text, margin: "0 0 8px" }}>{alert.title}</h3>
+        <p style={{ fontSize: 14, color: theme.textMuted, lineHeight: 1.5, margin: "0 0 8px" }}>{alert.body}</p>
+        <p style={{ fontSize: 11, color: theme.textMuted, margin: "0 0 16px" }}>
+          {new Date(alert.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </p>
+        <button onClick={onDismiss} style={{
+          width: "100%", padding: "12px", borderRadius: 12, border: "none",
+          background: theme.accent, color: "white", fontSize: 14, fontWeight: 600, cursor: "pointer",
+        }}>
+          Got it
+        </button>
+      </div>
     </div>
   );
 }
@@ -1097,6 +1145,13 @@ function NotificationsScreen() {
 // ========== MAIN APP ==========
 export default function WeddingApp() {
   const [screen, setScreen] = useState("home");
+  const [readAlertIds, setReadAlertIds] = useState(() => {
+    try {
+      const s = localStorage.getItem(ALERTS_READ_KEY);
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
+  });
+  const [bannerAlert, setBannerAlert] = useState(null);
   const now = () => new Date();
   const [dateTime, setDateTime] = useState(() => {
     const d = now();
@@ -1106,6 +1161,23 @@ export default function WeddingApp() {
     };
   });
   const scrollRef = useRef(null);
+
+  const markAlertRead = (id) => {
+    setReadAlertIds((prev) => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      try { localStorage.setItem(ALERTS_READ_KEY, JSON.stringify(next)); } catch (_) {}
+      return next;
+    });
+  };
+
+  const alertsSorted = [...ALERTS].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const unreadCount = alertsSorted.filter((a) => !readAlertIds.includes(a.id)).length;
+  const firstUrgentUnread = alertsSorted.find((a) => a.urgent && !readAlertIds.includes(a.id));
+
+  useEffect(() => {
+    setBannerAlert(firstUrgentUnread || null);
+  }, [firstUrgentUnread?.id]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
@@ -1168,8 +1240,17 @@ export default function WeddingApp() {
 
         {/* Content */}
         <div ref={scrollRef} className="app-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch" }}>
-          <Screen onNavigate={setScreen} onConfetti={runConfetti} />
+          <Screen
+            onNavigate={setScreen}
+            onConfetti={runConfetti}
+            readAlertIds={readAlertIds}
+            markAlertRead={markAlertRead}
+            alertsSorted={alertsSorted}
+          />
         </div>
+
+        {/* Alert banner (urgent) */}
+        <AlertBanner alert={bannerAlert} onDismiss={() => bannerAlert && markAlertRead(bannerAlert.id)} />
 
         {/* Bottom Nav — Material Symbols */}
         <nav style={{
@@ -1181,6 +1262,7 @@ export default function WeddingApp() {
           {navItems.map((item) => {
             const active = screen === item.id;
             const color = active ? navActive : navInactive;
+            const showBadge = item.id === "notifications" && unreadCount > 0;
             return (
               <button
                 key={item.id}
@@ -1191,8 +1273,20 @@ export default function WeddingApp() {
                   color, transition: "color 0.2s",
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 26, color: "inherit" }}>
-                  {item.icon}
+                <span style={{ position: "relative", display: "inline-flex" }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 26, color: "inherit" }}>
+                    {item.icon}
+                  </span>
+                  {showBadge && (
+                    <span style={{
+                      position: "absolute", top: -4, right: -8,
+                      minWidth: 18, height: 18, borderRadius: 9, background: "#E53935", color: "white",
+                      fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
+                      padding: "0 4px",
+                    }}>
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </span>
                 <span style={{
                   fontSize: 11, fontWeight: active ? 600 : 500, color: "inherit",
