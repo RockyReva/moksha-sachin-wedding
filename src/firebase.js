@@ -46,18 +46,31 @@ if (app) {
 }
 export { messaging };
 
+// Prefix with ' so Google Sheets treats as text (prevents formula interpretation / #ERROR!)
+function safeForSheets(value) {
+  if (value == null || value === "") return "";
+  const s = String(value).trim();
+  if (/^[=+\-@#]/.test(s)) return "'" + s;
+  return s;
+}
+
 // --- RSVP: Save to Google Sheets ---
 export async function submitRSVPToSheets(formData) {
   if (!GOOGLE_SHEETS_URL) return { success: false, error: "No Sheets URL configured" };
   try {
+    const payload = {
+      ...formData,
+      phone: safeForSheets(formData.phone),
+      name: safeForSheets(formData.name),
+      dietary: safeForSheets(formData.dietary),
+      plusOneName: safeForSheets(formData.plusOneName),
+      timestamp: new Date().toISOString(),
+    };
     const response = await fetch(GOOGLE_SHEETS_URL, {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...formData,
-        timestamp: new Date().toISOString(),
-      }),
+      body: JSON.stringify(payload),
     });
     return { success: true };
   } catch (error) {

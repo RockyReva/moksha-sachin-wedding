@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import confetti from "canvas-confetti";
 import {
   submitRSVPToSheets,
   submitRSVPToFirebase,
@@ -7,6 +8,35 @@ import {
   getFCMTokenIfGranted,
 } from "./firebase";
 import { WEDDING_DATE, SCHEDULE_EVENTS, RSVP_DEADLINE, WEDDING_DATES_DISPLAY } from "./schedule-data";
+
+const colors = ["#E91E63", "#F06292", "#9C27B0", "#2196F3", "#42A5F5", "#00BCD4", "#4CAF50", "#66BB6A", "#2D5016", "#4a5d23", "#5C3D2E", "#6D4C41", "#8D6E63", "#C4972A", "#FFD700", "#B8860B", "#C0C0C0", "#B0BEC5", "#E0E0E0"];
+
+const runConfetti = () => {
+  const duration = 2500;
+  const end = Date.now() + duration;
+  (function frame() {
+    confetti({ particleCount: 4, spread: 100, origin: { y: 0.6 }, colors });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
+};
+
+const runConfettiFromTop = () => {
+  const duration = 3500;
+  const end = Date.now() + duration;
+  (function frame() {
+    confetti({
+      particleCount: 4,
+      angle: 90,
+      spread: 120,
+      origin: { x: Math.random(), y: 0 },
+      colors,
+      startVelocity: 20,
+      gravity: 0.8,
+      scalar: 0.9,
+    });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
+};
 
 const SCREENS = ["home", "rsvp", "schedule", "venue", "stay", "notifications"];
 
@@ -286,7 +316,7 @@ function LiveWeatherCard() {
   );
 }
 
-function HomeScreen({ onNavigate }) {
+function HomeScreen({ onNavigate, onConfetti }) {
   const countdown = useCountdown(WEDDING_DATE);
 
   return (
@@ -326,10 +356,10 @@ function HomeScreen({ onNavigate }) {
           ))}
         </div>
 
-        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: "#FFFFFF", fontWeight: 500, margin: "8px 0 2px" }}>
+        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: "#FFFFFF", fontWeight: 500, margin: "8px 0 10px" }}>
           {WEDDING_DATES_DISPLAY}
         </p>
-        <p style={{ fontSize: 12, color: "#A8C99A", lineHeight: 1.4, marginBottom: 8 }}>
+        <p style={{ fontSize: 12, color: "#C5E1B8", lineHeight: 1.4, margin: "0 0 8px" }}>
           Kodagu, Karnataka · The Scotland of India
         </p>
 
@@ -415,12 +445,13 @@ function HomeScreen({ onNavigate }) {
         </div>
 
         <p style={{
-          fontSize: 11, color: theme.gold, textAlign: "center", marginTop: 24, marginBottom: 20, fontStyle: "italic",
+          fontSize: 11, color: "#4a5d23", textAlign: "center", marginTop: 24, marginBottom: 20, fontStyle: "italic",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 4, flexWrap: "wrap",
         }}>
           <span>✨</span>
-          App created and presented by Mandara Boys
-          <span style={{ display: "inline-flex", alignItems: "center", color: theme.gold }} title="15 friends">
+          App created and presented by{" "}
+          <span onClick={() => onConfetti?.()} style={{ cursor: onConfetti ? "pointer" : "default", textDecoration: "underline", textUnderlineOffset: 2 }} title="Click for confetti!">Mandara Boys</span>
+          <span style={{ display: "inline-flex", alignItems: "center", color: "#4a5d23", cursor: onConfetti ? "pointer" : "default" }} onClick={() => onConfetti?.()} title="15 friends — click for confetti!">
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>groups</span>
           </span>
           <span>✨</span>
@@ -929,9 +960,6 @@ function NotificationsScreen() {
   };
 
   const notifications = [
-    { title: "Sangeet Night Tomorrow! 🎶", time: "1 day ago", desc: "Get your dancing shoes ready — festivities begin at 8 PM", unread: true },
-    { title: "Shuttle Bus Schedule Updated", time: "3 days ago", desc: "Buses from Mysore depart at 8 AM, 12 PM, and 4 PM on Dec 19", unread: true },
-    { title: "Weather Advisory ☁️", time: "5 days ago", desc: "Light mist expected on ceremony day — carry a light shawl", unread: false },
     { title: "RSVP Reminder", time: "1 week ago", desc: "Please confirm your attendance by November 15", unread: false },
     { title: "Welcome to Our Wedding App! 🌿", time: "2 weeks ago", desc: "We're thrilled you're joining us in Coorg. Explore the app for all details!", unread: false },
   ];
@@ -1043,7 +1071,11 @@ function NotificationsScreen() {
       </div>
 
       <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: theme.text, marginBottom: 12 }}>Recent</h3>
-      {notifications.map((n, i) => (
+      {notifications.length === 0 ? (
+        <p style={{ fontSize: 12.5, color: theme.textMuted, padding: "16px 0", lineHeight: 1.5 }}>
+          No notifications yet. Event reminders and updates will appear here once you enable push notifications.
+        </p>
+      ) : notifications.map((n, i) => (
         <div key={i} style={{
           background: n.unread ? `${theme.accent}08` : theme.card, borderRadius: 14, padding: "12px 14px", marginBottom: 8,
           border: `1px solid ${n.unread ? theme.accent + "25" : theme.border}`,
@@ -1076,6 +1108,13 @@ export default function WeddingApp() {
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [screen]);
+
+  useEffect(() => {
+    if (!sessionStorage.getItem("wedding-confetti-shown")) {
+      sessionStorage.setItem("wedding-confetti-shown", "1");
+      runConfettiFromTop();
+    }
+  }, []);
 
   useEffect(() => {
     const tick = () => {
@@ -1127,7 +1166,7 @@ export default function WeddingApp() {
 
         {/* Content */}
         <div ref={scrollRef} className="app-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch" }}>
-          <Screen onNavigate={setScreen} />
+          <Screen onNavigate={setScreen} onConfetti={runConfetti} />
         </div>
 
         {/* Bottom Nav — Material Symbols */}
