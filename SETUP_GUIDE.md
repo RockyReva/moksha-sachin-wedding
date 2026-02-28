@@ -13,7 +13,7 @@ here is free at wedding scale.
 **Never commit API keys or secrets to GitHub.** This app uses environment variables:
 
 - **Local:** Create `.env` from `.env.example` and fill in your values. `.env` is gitignored.
-- **Vercel:** Add the same variables in Project Settings → Environment Variables
+- **Vercel:** Add the same variables in Project Settings → Environment Variables. **Important:** The service worker (`firebase-messaging-sw.js`) is generated at build time from `process.env` on Vercel — not from `.env` (which doesn't exist on Vercel's servers). If you skip adding Firebase vars to Vercel, push notifications will not work on your live site.
 - **If you got a "suspicious activity" email from Google:** Your API key was exposed. Regenerate it:
   1. Go to [Google Cloud Console](https://console.cloud.google.com) → Credentials
   2. Find your API key → Edit → **Regenerate key**
@@ -122,7 +122,7 @@ const firebaseConfig = {
    VITE_FIREBASE_VAPID_KEY=   (from Step 5 below)
    VITE_GOOGLE_SHEETS_URL=    (from Part 1)
    ```
-3. **Never commit `.env`** — it's in `.gitignore`. The service worker is generated at build time from `.env`.
+3. **Never commit `.env`** — it's in `.gitignore`. The service worker is generated at build time: locally from `.env`, on Vercel from `process.env` (Vercel's Environment Variables). Add all Firebase vars to Vercel for push notifications to work on the live site.
 
 ### Step 4: Enable Firestore Database
 
@@ -247,7 +247,7 @@ Replace `YOUR_USERNAME` with your actual GitHub username. When prompted for pass
 2. Click **Add New** → **Project**
 3. Import your `moksha-sachin-wedding` repository (it should appear in the list)
 4. Click **Import**
-5. **Add environment variables** before deploying: Project Settings → Environment Variables → add each variable from `.env` (VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, etc.). Use the same names as in `.env.example`.
+5. **Add environment variables** before deploying: Project Settings → Environment Variables → add each variable from `.env` (VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, etc.). Use the same names as in `.env.example`. The service worker reads from `process.env` during the Vercel build — without these, push notifications will not work on the live site.
 6. Vercel will detect it's a Vite project. Click **Deploy** (don't change any settings)
 7. Wait 1–2 minutes. Your site will be live at `https://moksha-sachin-wedding.vercel.app` (or a similar URL)
 8. Share this URL with guests!
@@ -296,7 +296,8 @@ Whenever you change the app (e.g. update text, add venue photo, fix the map), pu
    - Accept default project name
    - Accept default settings (just press Enter)
 5. Vercel will build and deploy. You'll get a URL like `https://wedding-deploy-xxx.vercel.app`
-6. Share this URL with guests!
+6. **Add environment variables:** Go to [vercel.com](https://vercel.com) → your project → Settings → Environment Variables. Add all vars from `.env` (Firebase, Google Sheets, etc.). Redeploy (Deployments → ⋮ → Redeploy) so the service worker is rebuilt with the correct config.
+7. Share this URL with guests!
 
 **To update later:** Run `npx vercel` again from the same folder. Each run creates a new deployment. For automatic updates on every change, switch to Option A (GitHub).
 
@@ -718,6 +719,46 @@ git push
 
 ---
 
+## PART 6: Google Maps Embed (Optional) — ~5 minutes
+
+The Venue tab shows a map of the wedding location. By default it uses OpenStreetMap. If you want Google Maps instead (with zoom level 7):
+
+### Step 1: Enable Maps Embed API
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Select your project (or create one)
+3. Go to **APIs & Services → Library**
+4. Search for **Maps Embed API**
+5. Click it and click **Enable**
+
+### Step 2: Create an API Key
+
+1. Go to **APIs & Services → Credentials**
+2. Click **Create Credentials → API key**
+3. A **Create API key** modal appears — this is the configuration screen. The key is shown only *after* you click **Create**.
+4. **Name** (optional): Keep the default or enter something like "Wedding App Maps"
+5. **Application restrictions** (recommended): Select **Websites**, then add:
+   - `localhost:*` (for local dev)
+   - `*.vercel.app/*` (for Vercel)
+   - Your custom domain if you use one (e.g. `yourdomain.com/*`)
+6. **API restrictions** (recommended): Select **Restrict key**, then choose **Maps Embed API**
+7. Click the blue **Create** button
+8. A popup will show your new API key — **copy it now** (you may not see it again in full)
+9. If you skipped restrictions, you can edit the key later in Credentials → click the pencil icon next to the key
+
+### Step 3: Add to `.env`
+
+Add to your `.env` file:
+```
+VITE_GOOGLE_MAPS_EMBED_KEY=your-api-key-here
+```
+
+Add the same variable in Vercel → Project Settings → Environment Variables.
+
+When set, the Venue tab uses Google Maps with zoom level 7. When empty, it falls back to OpenStreetMap.
+
+---
+
 ## Summary: What Goes in `.env` (and Vercel Environment Variables)
 
 | Variable | What to Put |
@@ -731,6 +772,7 @@ git push
 | `VITE_FIREBASE_VAPID_KEY` | Web push VAPID key |
 | `VITE_GOOGLE_SHEETS_URL` | Full Google Apps Script Web App URL (RSVP) |
 | `VITE_ALERTS_SHEETS_URL` | Same URL for Alerts from sheet (optional; when empty, uses static alerts) |
+| `VITE_GOOGLE_MAPS_EMBED_KEY` | Google Maps Embed API key (optional; when empty, uses OpenStreetMap) |
 
 ---
 
@@ -742,6 +784,7 @@ git push
 
 **Push notifications not working?**
 → Must be HTTPS (localhost or Vercel — not plain HTTP).
+→ **On live site (Vercel):** Ensure all Firebase env vars are in Vercel → Project Settings → Environment Variables. The service worker is built from `process.env`; if vars are missing, the worker has empty config and push won't work.
 → Check browser console for errors.
 → Safari on iOS has limited push support — works best on Android Chrome.
 
