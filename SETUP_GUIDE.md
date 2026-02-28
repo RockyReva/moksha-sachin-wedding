@@ -565,7 +565,7 @@ Vercel deploys in 1–2 minutes. Guests see the alert when they next open or ref
 
 ## PART 5c: Alerts from Google Sheets (Optional)
 
-Manage alerts from a spreadsheet — add a row and guests see it within 7 minutes (or immediately if they tap Refresh). No code or Git needed after setup.
+Manage alerts from a spreadsheet — add a row and guests see it within 15 minutes (or immediately if they tap Refresh). No code or Git needed after setup.
 
 **Time needed:** ~15 minutes for initial setup
 
@@ -690,7 +690,7 @@ git push
 1. Open your Google Sheet → **Alerts** tab
 2. Add a new row with: id, title, body, date, urgent
 3. Save (Google Sheets auto-saves)
-4. Guests see it within 7 minutes, or immediately if they tap **Refresh** or pull down on the Alerts screen
+4. Guests see it within 15 minutes, or immediately if they tap **Refresh** or pull down on the Alerts screen
 
 ---
 
@@ -699,7 +699,7 @@ git push
 | Feature | Behavior |
 |---------|----------|
 | **Fetch on load** | Alerts load when the app opens |
-| **Poll every 7 minutes** | New alerts appear automatically while the app is open |
+| **Poll every 15 minutes** | New alerts appear automatically while the app is open |
 | **Refresh button** | Tap to fetch the latest immediately |
 | **Pull down to refresh** | On the Alerts screen, pull down when at the top to refresh |
 | **Offline** | Cached alerts are shown when there's no network |

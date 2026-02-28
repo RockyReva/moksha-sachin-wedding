@@ -12,7 +12,7 @@ import { fetchAlerts } from "./alerts";
 import { ALERTS as STATIC_ALERTS } from "./alerts-data";
 
 const ALERTS_READ_KEY = "wedding-alerts-read";
-const ALERTS_POLL_MS = 7 * 60 * 1000; // 7 minutes
+const ALERTS_POLL_MS = 15 * 60 * 1000; // 15 minutes
 
 const colors = ["#E91E63", "#F06292", "#9C27B0", "#2196F3", "#42A5F5", "#00BCD4", "#4CAF50", "#66BB6A", "#2D5016", "#4a5d23", "#5C3D2E", "#6D4C41", "#8D6E63", "#C4972A", "#FFD700", "#B8860B", "#C0C0C0", "#B0BEC5", "#E0E0E0"];
 

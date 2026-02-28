@@ -1,7 +1,7 @@
 /**
  * Alerts — fetch from Google Sheets or use static fallback.
  * When VITE_ALERTS_SHEETS_URL is set, fetches from that URL.
- * Caches in localStorage for offline. Polls every 7 minutes.
+ * Caches in localStorage for offline. Polls every 15 minutes.
  */
 
 import { ALERTS as STATIC_ALERTS } from "./alerts-data";
