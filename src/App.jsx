@@ -53,7 +53,7 @@ const VENUE_LAT = 12.198;
 const VENUE_LNG = 75.7365;
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_EMBED_KEY;
 const VENUE_MAP_EMBED = GOOGLE_MAPS_KEY
-  ? `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${VENUE_LAT},${VENUE_LNG}&zoom=8`
+  ? `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${VENUE_LAT},${VENUE_LNG}&zoom=9`
   : `https://www.openstreetmap.org/export/embed.html?bbox=75.5%2C12.0%2C76.8%2C12.5&marker=${VENUE_LAT}%2C${VENUE_LNG}&layer=mapnik`;
 const WEATHER_URL = "https://www.accuweather.com/en/in/madikeri/188779/weather-forecast/188779";
 const WEATHER_API = `https://api.open-meteo.com/v1/forecast?latitude=${VENUE_LAT}&longitude=${VENUE_LNG}&current=temperature_2m,weather_code,relative_humidity_2m,apparent_temperature&timezone=auto`;
