@@ -1,26 +1,53 @@
 // ===========================================================================
-// GOOGLE APPS SCRIPT — RSVP TO GOOGLE SHEETS
+// GOOGLE APPS SCRIPT — RSVP + ALERTS
 // ===========================================================================
 //
-// HOW TO SET THIS UP:
+// SETUP:
 //
-// 1. Go to https://sheets.google.com and create a new spreadsheet
-// 2. Name it "Moksha & Sachin Wedding RSVPs"
-// 3. Add these headers in Row 1:
-//    A1: Timestamp | B1: Name | C1: Phone | D1: Attending | E1: Guests
-//    F1: Meal | G1: Drink | H1: Dietary | I1: Plus One Name
+// 1. Create a spreadsheet with two sheets:
+//    - "RSVPs" (or default): Timestamp | Name | Phone | Attending | Guests | Meal | Drink | Dietary | Plus One Name
+//    - "Alerts": id | title | body | date | urgent
 //
-// 4. Click Extensions → Apps Script
-// 5. Delete any existing code and paste ALL of this code
-// 6. Click Deploy → New Deployment
-// 7. Choose "Web app" as the type
-// 8. Set "Execute as" → "Me"
-// 9. Set "Who has access" → "Anyone"
-// 10. Click Deploy and copy the Web App URL
-// 11. Paste that URL into src/firebase.js as GOOGLE_SHEETS_URL
+// 2. Extensions → Apps Script → paste this code
+// 3. Deploy → Web app → Execute as "Me" → Who has access "Anyone"
+// 4. Use the URL for VITE_GOOGLE_SHEETS_URL (RSVP) and VITE_ALERTS_SHEETS_URL (alerts)
 //
 // ===========================================================================
 
+// --- ALERTS: GET returns alerts from "Alerts" sheet ---
+// Sheet columns (Row 1): id | title | body | date | urgent
+// urgent = true/false or 1/0
+function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Alerts");
+    var alerts = [];
+    if (sheet) {
+      var data = sheet.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        var id = String(row[0] || "").trim();
+        if (!id) continue;
+        var u = row[4];
+        var urgent = u === true || String(u).toLowerCase() === "true" || u === "1";
+        alerts.push({
+          id: id,
+          title: String(row[1] || "").trim(),
+          body: String(row[2] || "").trim(),
+          date: String(row[3] || "").trim(),
+          urgent: urgent,
+        });
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ alerts: alerts }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ alerts: [], error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// --- RSVP: POST appends to active sheet ---
 function doPost(e) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();

@@ -401,35 +401,87 @@ but wedding-scale usage would cost < ₹100 total).
 
 ---
 
-## PART 5b: Manual Alerts (In-App)
+## PART 5b: Manual Alerts (In-App) — Setup Guide
 
-**Manual alerts** appear inside the app for all guests — no Firebase or push setup needed. Add an alert in code, push to GitHub, and guests see it when they next open the app. Use this when Firebase push isn't working (e.g. on iPhone) or when you want a reliable fallback.
+**Manual alerts** appear inside the app for all guests — no Firebase or push setup needed. Use this when Firebase push isn't working (e.g. on iPhone) or when you want a reliable fallback.
 
-### How it works
+**Default:** The app already includes sample alerts from `alerts-data.js`. You can edit that file and push to GitHub, or switch to Google Sheets for no-code updates.
+
+### Choose your method
+
+| Method | Best for | To add an alert |
+|--------|----------|-----------------|
+| **Code** (PART 5b) | You're comfortable with Git | Edit `alerts-data.js`, push to GitHub |
+| **Google Sheets** (PART 5c) | Non-technical family, last-minute changes | Add a row in the spreadsheet |
+
+### How alerts work in the app
 
 - **Urgent alerts** (`urgent: true`) → Show a banner modal when the app loads. Guest clicks "Got it" to dismiss.
 - **Regular alerts** (`urgent: false`) → Appear only in the Alerts history (no banner).
-- **Badge** → Red number on the bell icon shows unread count.
+- **Badge** → Red number on the bell icon in the bottom nav shows unread count.
 - **History** → All alerts appear in the Alerts tab, newest first. Tap to mark as read.
+- **Refresh** → Tap the Refresh button or pull down on the Alerts screen to fetch the latest (when using Google Sheets).
 
-### How to add an alert
+---
 
-1. Open `src/alerts-data.js` in your project.
-2. Add a new object to the `ALERTS` array:
+### Option A: Alerts from Code (`alerts-data.js`)
+
+**Time needed:** ~5 minutes per alert
+
+#### Step 1: Open the alerts file
+
+1. In your project folder, open `src/alerts-data.js` in your code editor (VS Code, Cursor, etc.).
+
+#### Step 2: Add a new alert object
+
+2. Find the `ALERTS` array (it looks like `export const ALERTS = [ ... ]`).
+3. Add a new object inside the array. Each alert needs these fields:
+
+| Field | Required | Description | Example |
+|-------|----------|-------------|---------|
+| `id` | Yes | Unique identifier, no spaces | `"shuttle-update"` |
+| `title` | Yes | Short title shown in banner and list | `"Shuttle time change"` |
+| `body` | Yes | Full message content | `"The shuttle will depart 15 min earlier..."` |
+| `date` | Yes | Date in YYYY-MM-DD format | `"2026-12-18"` |
+| `urgent` | Yes | `true` = banner on load; `false` = history only | `true` |
+
+4. Make sure each object is separated by a comma. Example:
 
 ```js
-{
-  id: "unique-id",           // One word, no spaces (e.g. shuttle-update)
-  title: "Short title",      // Shown in banner and list
-  body: "Full message...",   // The main content
-  date: "2026-12-19",        // YYYY-MM-DD (for sorting and display)
-  urgent: true,              // true = banner on load; false = history only
-},
+export const ALERTS = [
+  {
+    id: "shuttle-update",
+    title: "Shuttle time change",
+    body: "The shuttle will depart 15 minutes earlier. Please arrive by 8:45 AM.",
+    date: "2026-12-18",
+    urgent: true,
+  },
+  // ... more alerts
+];
 ```
 
-3. Push to GitHub. Vercel redeploys. Guests see the alert on their next visit.
+#### Step 3: Save and push to GitHub
 
-### Realistic examples
+5. Save the file (Ctrl+S or Cmd+S).
+6. Open a terminal in your project folder and run:
+
+```powershell
+git add src/alerts-data.js
+git commit -m "Add shuttle time change alert"
+git push
+```
+
+7. Wait 1–2 minutes for Vercel to redeploy. Guests will see the alert when they next open or refresh the app.
+
+#### Step 4: Test it
+
+8. Open your live app URL (e.g. `https://moksha-sachin-wedding.vercel.app`).
+9. If the alert is urgent, you should see a banner modal. Click "Got it".
+10. Go to the **Alerts** tab — the alert should appear in the history.
+
+---
+
+### Realistic examples (for code-based alerts)
 
 **Shuttle or transport change (urgent)**
 ```js
@@ -497,17 +549,172 @@ but wedding-scale usage would cost < ₹100 total).
 },
 ```
 
-### Quick deploy workflow
+### Quick reference (code-based alerts)
 
 ```powershell
-# 1. Edit src/alerts-data.js (add your alert)
-# 2. Commit and push
+# After editing src/alerts-data.js:
 git add src/alerts-data.js
 git commit -m "Add shuttle time change alert"
 git push
 ```
 
 Vercel deploys in 1–2 minutes. Guests see the alert when they next open or refresh the app.
+
+---
+
+## PART 5c: Alerts from Google Sheets (Optional)
+
+Manage alerts from a spreadsheet — add a row and guests see it within 7 minutes (or immediately if they tap Refresh). No code or Git needed after setup.
+
+**Time needed:** ~15 minutes for initial setup
+
+---
+
+### Step 1: Open your wedding spreadsheet
+
+1. Go to [sheets.google.com](https://sheets.google.com)
+2. Open the spreadsheet you use for RSVPs (the one connected to your wedding app)
+
+---
+
+### Step 2: Add an "Alerts" sheet
+
+3. At the bottom of the spreadsheet, click the **+** button (or **Add sheet**) to create a new sheet tab.
+4. Right-click the new tab and choose **Rename**. Name it exactly: **Alerts**
+5. Click on cell **A1** and type: `id`
+6. In **B1** type: `title`
+7. In **C1** type: `body`
+8. In **D1** type: `date`
+9. In **E1** type: `urgent`
+
+Your Row 1 should look like this:
+
+| A | B | C | D | E |
+|---|---|---|---|---|
+| id | title | body | date | urgent |
+
+10. Add at least one sample row so the sheet works. Example:
+
+| id | title | body | date | urgent |
+|----|-------|------|------|--------|
+| welcome | Welcome! 🌿 | We're thrilled you're joining us in Coorg. | 2026-02-15 | false |
+
+**Column rules:**
+- **id** — Unique, no spaces (e.g. `shuttle-update`, `parking-info`)
+- **title** — Short title (e.g. "Shuttle time change")
+- **body** — Full message (can be long)
+- **date** — YYYY-MM-DD (e.g. `2026-12-18`)
+- **urgent** — `true` or `false` (or `1`/`0`). `true` = banner on app load; `false` = history only
+
+---
+
+### Step 3: Update the Apps Script
+
+11. In your spreadsheet, click **Extensions → Apps Script**
+12. You should see the existing script (the one that handles RSVPs). **Select all the code** (Ctrl+A or Cmd+A) and delete it.
+13. Open the file `google-apps-script.js` from this project folder on your computer.
+14. Copy **all** the code from that file and paste it into the Apps Script editor.
+15. Click **💾 Save** (or Ctrl+S). The script now includes both RSVP (POST) and Alerts (GET).
+
+---
+
+### Step 4: Create a new deployment (or update existing)
+
+**If this is your first time deploying:**
+
+16. Click **Deploy → New deployment**
+17. Click the gear icon ⚙️ → Select **Web app**
+18. Set:
+   - **Description:** "Wedding RSVP + Alerts"
+   - **Execute as:** "Me"
+   - **Who has access:** "Anyone"
+19. Click **Deploy**
+20. Authorize if prompted (click through the permissions)
+21. **Copy the Web App URL** — it must start with `https://script.google.com/macros/s/` and end with `/exec`
+
+**If you already have a deployment (from RSVP setup):**
+
+16. Click **Deploy → Manage deployments**
+17. Click the **pencil icon** (Edit) next to your existing deployment
+18. Under **Version**, select **New version**
+19. Click **Deploy**
+20. The URL stays the same — no need to copy it again
+
+---
+
+### Step 5: Add the URL to your app
+
+21. Open your project folder and edit the `.env` file (create from `.env.example` if needed).
+22. Add this line (use your actual Web App URL):
+
+```
+VITE_ALERTS_SHEETS_URL=https://script.google.com/macros/s/YOUR_ACTUAL_ID/exec
+```
+
+**Important:** Use the **same URL** as `VITE_GOOGLE_SHEETS_URL` — the script handles both RSVP and Alerts. You can set both to the same value:
+
+```
+VITE_GOOGLE_SHEETS_URL=https://script.google.com/macros/s/ABC123.../exec
+VITE_ALERTS_SHEETS_URL=https://script.google.com/macros/s/ABC123.../exec
+```
+
+23. If you deploy to Vercel, add `VITE_ALERTS_SHEETS_URL` in **Vercel Dashboard → Project → Settings → Environment Variables**. Use the same value as above.
+
+---
+
+### Step 6: Redeploy your app
+
+24. Push your changes to GitHub (or run `npx vercel`):
+
+```powershell
+git add .
+git commit -m "Enable alerts from Google Sheets"
+git push
+```
+
+25. Wait 1–2 minutes for Vercel to redeploy.
+
+---
+
+### Step 7: Test it
+
+26. Open your live app URL.
+27. Go to the **Alerts** tab — you should see the alerts from your sheet.
+28. Add a new row in the Alerts sheet with `urgent` = `true`. Tap **Refresh** on the Alerts screen — the new alert should appear. If it's urgent, close and reopen the app to see the banner.
+
+---
+
+### Adding new alerts (after setup)
+
+1. Open your Google Sheet → **Alerts** tab
+2. Add a new row with: id, title, body, date, urgent
+3. Save (Google Sheets auto-saves)
+4. Guests see it within 7 minutes, or immediately if they tap **Refresh** or pull down on the Alerts screen
+
+---
+
+### How it works
+
+| Feature | Behavior |
+|---------|----------|
+| **Fetch on load** | Alerts load when the app opens |
+| **Poll every 7 minutes** | New alerts appear automatically while the app is open |
+| **Refresh button** | Tap to fetch the latest immediately |
+| **Pull down to refresh** | On the Alerts screen, pull down when at the top to refresh |
+| **Offline** | Cached alerts are shown when there's no network |
+
+---
+
+### Troubleshooting
+
+**Alerts not showing from the sheet?**
+- Check that the sheet tab is named exactly **Alerts** (case-sensitive)
+- Check that Row 1 has the headers: id, title, body, date, urgent
+- Verify `VITE_ALERTS_SHEETS_URL` is set in `.env` and Vercel
+- Test the URL: open it in a browser — you should see JSON like `{"alerts":[...]}`
+
+**"Alerts" sheet doesn't exist?**
+- The script looks for a sheet named "Alerts". Create it and ensure the name matches exactly.
 
 ---
 
@@ -522,7 +729,8 @@ Vercel deploys in 1–2 minutes. Guests see the alert when they next open or ref
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase sender ID |
 | `VITE_FIREBASE_APP_ID` | Firebase app ID |
 | `VITE_FIREBASE_VAPID_KEY` | Web push VAPID key |
-| `VITE_GOOGLE_SHEETS_URL` | Full Google Apps Script Web App URL |
+| `VITE_GOOGLE_SHEETS_URL` | Full Google Apps Script Web App URL (RSVP) |
+| `VITE_ALERTS_SHEETS_URL` | Same URL for Alerts from sheet (optional; when empty, uses static alerts) |
 
 ---
 

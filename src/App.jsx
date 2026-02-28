@@ -8,9 +8,11 @@ import {
   getFCMTokenIfGranted,
 } from "./firebase";
 import { WEDDING_DATE, SCHEDULE_EVENTS, RSVP_DEADLINE, WEDDING_DATES_DISPLAY } from "./schedule-data";
-import { ALERTS } from "./alerts-data";
+import { fetchAlerts } from "./alerts";
+import { ALERTS as STATIC_ALERTS } from "./alerts-data";
 
 const ALERTS_READ_KEY = "wedding-alerts-read";
+const ALERTS_POLL_MS = 7 * 60 * 1000; // 7 minutes
 
 const colors = ["#E91E63", "#F06292", "#9C27B0", "#2196F3", "#42A5F5", "#00BCD4", "#4CAF50", "#66BB6A", "#2D5016", "#4a5d23", "#5C3D2E", "#6D4C41", "#8D6E63", "#C4972A", "#FFD700", "#B8860B", "#C0C0C0", "#B0BEC5", "#E0E0E0"];
 
@@ -928,11 +930,21 @@ function StayScreen() {
 }
 
 // ========== NOTIFICATIONS SCREEN ==========
-function NotificationsScreen({ onNavigate, onConfetti, readAlertIds = [], markAlertRead, alertsSorted = [] }) {
+function NotificationsScreen({ onNavigate, onConfetti, readAlertIds = [], markAlertRead, alertsSorted = [], onRefreshAlerts, alertsLoading = false, scrollRef }) {
   const [enabled, setEnabled] = useState({ events: true, schedule: true, travel: false, photos: false });
   const [pushStatus, setPushStatus] = useState("idle"); // idle | requesting | granted | denied | unsupported
   const [toastMessage, setToastMessage] = useState(null);
   const [tokenCopied, setTokenCopied] = useState(false);
+  const pullStartY = useRef(0);
+
+  const handlePullStart = (e) => {
+    pullStartY.current = e.touches?.[0]?.clientY ?? e.clientY;
+  };
+  const handlePullEnd = (e) => {
+    const endY = e.changedTouches?.[0]?.clientY ?? e.clientY;
+    const atTop = scrollRef?.current && scrollRef.current.scrollTop <= 5;
+    if (atTop && pullStartY.current - endY > 60 && onRefreshAlerts && !alertsLoading) onRefreshAlerts();
+  };
 
   // Listen for foreground messages
   useEffect(() => {
@@ -976,7 +988,11 @@ function NotificationsScreen({ onNavigate, onConfetti, readAlertIds = [], markAl
   };
 
   return (
-    <div style={{ padding: "10px 20px 30px" }}>
+    <div
+      style={{ padding: "10px 20px 30px" }}
+      onTouchStart={onRefreshAlerts ? handlePullStart : undefined}
+      onTouchEnd={onRefreshAlerts ? handlePullEnd : undefined}
+    >
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: theme.text, margin: "0 0 2px" }}>Notifications</h2>
         <p style={{ fontSize: 12, color: theme.textMuted }}>Stay updated with wedding events</p>
@@ -1081,7 +1097,26 @@ function NotificationsScreen({ onNavigate, onConfetti, readAlertIds = [], markAl
         ))}
       </div>
 
-      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: theme.text, marginBottom: 12 }}>Alert History</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: theme.text, margin: 0 }}>Alert History</h3>
+        {onRefreshAlerts && (
+          <button
+            onClick={onRefreshAlerts}
+            disabled={alertsLoading}
+            style={{
+              padding: "6px 12px", borderRadius: 20, border: `1px solid ${theme.border}`,
+              background: theme.card, color: theme.accent, fontSize: 12, fontWeight: 600,
+              cursor: alertsLoading ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 4,
+            }}
+          >
+            <span style={{ fontSize: 14 }}>↻</span>
+            {alertsLoading ? "Refreshing..." : "Refresh"}
+          </button>
+        )}
+      </div>
+      {onRefreshAlerts && (
+        <p style={{ fontSize: 11, color: theme.textMuted, margin: "0 0 12px" }}>Pull down to refresh</p>
+      )}
       {alertsSorted.length === 0 ? (
         <p style={{ fontSize: 12.5, color: theme.textMuted, padding: "16px 0", lineHeight: 1.5 }}>
           No alerts yet. Add alerts in alerts-data.js and push to GitHub to broadcast updates to guests.
@@ -1152,7 +1187,16 @@ export default function WeddingApp() {
     } catch { return []; }
   });
   const [bannerAlert, setBannerAlert] = useState(null);
+  const [alerts, setAlerts] = useState(STATIC_ALERTS);
+  const [alertsLoading, setAlertsLoading] = useState(false);
   const now = () => new Date();
+
+  const loadAlerts = async () => {
+    setAlertsLoading(true);
+    const { alerts: next } = await fetchAlerts();
+    setAlerts(next);
+    setAlertsLoading(false);
+  };
   const [dateTime, setDateTime] = useState(() => {
     const d = now();
     return {
@@ -1171,9 +1215,18 @@ export default function WeddingApp() {
     });
   };
 
-  const alertsSorted = [...ALERTS].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const alertsSorted = [...alerts].sort((a, b) => new Date(b.date) - new Date(a.date));
   const unreadCount = alertsSorted.filter((a) => !readAlertIds.includes(a.id)).length;
   const firstUrgentUnread = alertsSorted.find((a) => a.urgent && !readAlertIds.includes(a.id));
+
+  useEffect(() => {
+    loadAlerts();
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(loadAlerts, ALERTS_POLL_MS);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     setBannerAlert(firstUrgentUnread || null);
@@ -1246,6 +1299,9 @@ export default function WeddingApp() {
             readAlertIds={readAlertIds}
             markAlertRead={markAlertRead}
             alertsSorted={alertsSorted}
+            onRefreshAlerts={loadAlerts}
+            alertsLoading={alertsLoading}
+            scrollRef={scrollRef}
           />
         </div>
 
