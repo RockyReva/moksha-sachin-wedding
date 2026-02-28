@@ -1236,6 +1236,11 @@ export default function WeddingApp() {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [screen]);
 
+  // Auto-refresh alerts when user opens the Alerts tab
+  useEffect(() => {
+    if (screen === "notifications") loadAlerts();
+  }, [screen]);
+
   useEffect(() => {
     if (!sessionStorage.getItem("wedding-confetti-shown")) {
       sessionStorage.setItem("wedding-confetti-shown", "1");
