@@ -9,8 +9,8 @@ const { join } = require("path");
 
 const root = join(__dirname, "..");
 
-// Parse .env manually (no extra dependency)
-function loadEnv() {
+// Parse .env manually (no extra dependency) — for local dev
+function loadEnvFromFile() {
   const envPath = join(root, ".env");
   if (!existsSync(envPath)) return {};
   const content = readFileSync(envPath, "utf8");
@@ -24,7 +24,16 @@ function loadEnv() {
   return env;
 }
 
-const env = loadEnv();
+// process.env first (Vercel/CI), then .env file (local)
+const fileEnv = loadEnvFromFile();
+const env = {
+  VITE_FIREBASE_API_KEY: process.env.VITE_FIREBASE_API_KEY || fileEnv.VITE_FIREBASE_API_KEY,
+  VITE_FIREBASE_AUTH_DOMAIN: process.env.VITE_FIREBASE_AUTH_DOMAIN || fileEnv.VITE_FIREBASE_AUTH_DOMAIN,
+  VITE_FIREBASE_PROJECT_ID: process.env.VITE_FIREBASE_PROJECT_ID || fileEnv.VITE_FIREBASE_PROJECT_ID,
+  VITE_FIREBASE_STORAGE_BUCKET: process.env.VITE_FIREBASE_STORAGE_BUCKET || fileEnv.VITE_FIREBASE_STORAGE_BUCKET,
+  VITE_FIREBASE_MESSAGING_SENDER_ID: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || fileEnv.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  VITE_FIREBASE_APP_ID: process.env.VITE_FIREBASE_APP_ID || fileEnv.VITE_FIREBASE_APP_ID,
+};
 
 const templatePath = join(root, "public", "firebase-messaging-sw.template.js");
 const outputPath = join(root, "public", "firebase-messaging-sw.js");
