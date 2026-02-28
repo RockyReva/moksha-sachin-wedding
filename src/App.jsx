@@ -321,9 +321,9 @@ function HomeScreen({ onNavigate, onConfetti }) {
 
   return (
     <div style={{ padding: 0 }}>
-      {/* Hero Banner — uses public/venue-photo.jpg or venue-photo.png if present, else fallback */}
+      {/* Hero Banner — uses public/venue-photo.png if present, else fallback (rename .jpg to .png if needed) */}
       <div style={{
-        background: `linear-gradient(180deg, rgba(26,52,9,0.85) 0%, rgba(45,80,22,0.7) 40%, rgba(45,80,22,0.85) 100%), url("/venue-photo.jpg") center/cover no-repeat, url("/venue-photo.png") center/cover no-repeat, url("${HERO_BG_FALLBACK}") center/cover no-repeat`,
+        background: `linear-gradient(180deg, rgba(26,52,9,0.85) 0%, rgba(45,80,22,0.7) 40%, rgba(45,80,22,0.85) 100%), url("/venue-photo.png") center/cover no-repeat, url("${HERO_BG_FALLBACK}") center/cover no-repeat`,
         padding: "36px 24px 0", textAlign: "center", position: "relative", overflow: "hidden",
         minHeight: 320,
       }}>
