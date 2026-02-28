@@ -721,7 +721,7 @@ git push
 
 ## PART 6: Google Maps Embed (Optional) — ~5 minutes
 
-The Venue tab shows a map of the wedding location. By default it uses OpenStreetMap. If you want Google Maps instead (with zoom level 7):
+The Venue tab shows a map of the wedding location. By default it uses OpenStreetMap. If you want Google Maps instead (with zoom level 8):
 
 ### Step 1: Enable Maps Embed API
 
@@ -755,7 +755,7 @@ VITE_GOOGLE_MAPS_EMBED_KEY=your-api-key-here
 
 Add the same variable in Vercel → Project Settings → Environment Variables.
 
-When set, the Venue tab uses Google Maps with zoom level 7. When empty, it falls back to OpenStreetMap.
+When set, the Venue tab uses Google Maps with zoom level 8. When empty, it falls back to OpenStreetMap.
 
 ---
 
