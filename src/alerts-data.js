@@ -7,9 +7,9 @@
 
 export const ALERTS = [
   {
-    id: "shuttle-update",
-    title: "Shuttle time change",
-    body: "The shuttle will depart 15 minutes earlier. Please arrive at the pickup point by 8:45 AM.",
+    id: "Book-roms"
+    title: "Book Rooms now"
+    body: "Rooms may be sold out. Reserve soon and secure your spot.",
     date: "2026-03-01",
     urgent: true,
   },
