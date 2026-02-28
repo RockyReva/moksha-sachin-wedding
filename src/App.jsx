@@ -942,12 +942,14 @@ function NotificationsScreen() {
     });
   }, []);
 
-  // Check existing permission on mount
+  // Check existing permission on mount — if already granted, ensure we have token saved
   useEffect(() => {
     if (!("Notification" in window)) {
       setPushStatus("unsupported");
     } else if (Notification.permission === "granted") {
       setPushStatus("granted");
+      // User may have allowed via browser settings; ensure token is obtained and saved
+      requestNotificationPermission().catch(() => {});
     } else if (Notification.permission === "denied") {
       setPushStatus("denied");
     }
