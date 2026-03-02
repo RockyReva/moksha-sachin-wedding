@@ -39,9 +39,13 @@ This lets RSVPs land in a Google Spreadsheet your friend can view and manage.
 3. Name it **"Moksha & Sachin Wedding RSVPs"**
 4. In **Row 1**, add these headers:
 
-| A | B | C | D | E | F | G | H | I |
-|---|---|---|---|---|---|---|---|---|
-| Timestamp | Name | Phone | Attending | Guests | Meal | Drink | Dietary | Plus One Name |
+| A | B | C | D | E | F | G | H | I | J |
+|---|---|---|---|---|---|---|---|---|---|
+| Timestamp | Name | Phone | Attending | Guests | Veg | Non-Veg | Drink Preference | Ganga Pooja Drink | Consent |
+
+**Note:** Veg and Non-Veg are filled automatically: for 1 guest, Meal preference sets one to 1; for 2+ guests, the app sends the veg/non-veg breakup. **Drink Preference** and **Ganga Pooja Drink** (Cocktails/Mocktails) are captured from the RSVP form. **Consent** records "Yes" or "No" based on the privacy consent checkbox.
+
+**Tip:** Name the sheet tab **"RSVPs"** so the script finds it reliably. If not, the first sheet is used. Each submission adds a new row; if a guest resubmits, use the latest row.
 
 ### Step 2: Deploy the Apps Script
 
@@ -72,6 +76,42 @@ The URL must start with `https://script.google.com/macros/s/` and end with `/exe
 
 1. Run `npm run dev` and submit a test RSVP
 2. Check your Google Sheet — a new row should appear!
+
+**RSVP updates not saving?** If duplicate submissions don't create new rows but the existing row doesn't update either, check:
+- **Execute as:** must be **"Me"** (not "User accessing the web app"). With "Anyone" access, the script runs as anonymous when the app sends the request; only "Me" has write permission.
+- **Deploy → Manage deployments** → Edit → **New version** → Deploy (after any script change).
+
+---
+
+## PART 1b: Using a different Google Sheet (for another couple)
+
+When you hand off the app to a friend (e.g. whose daughter is getting married), they need their **own** Google Sheet so RSVPs land in their spreadsheet, not yours.
+
+### Option A: Same app, different sheet (you keep hosting)
+
+1. **Your friend** creates a new Google Spreadsheet at [sheets.google.com](https://sheets.google.com)
+2. They add the same headers in Row 1: `Timestamp | Name | Phone | Attending | Guests | Veg | Non-Veg | Drink Preference | Ganga Pooja Drink | Consent`
+3. They name the sheet tab **"RSVPs"**
+4. They go to **Extensions → Apps Script**, paste the code from `google-apps-script.js` (in this project), and click **Save**
+5. They click **Deploy → New deployment** → gear icon → **Web app**
+6. Set **Execute as:** "Me", **Who has access:** "Anyone" → **Deploy**
+7. They **copy the full Web App URL** (starts with `https://script.google.com/macros/s/` and ends with `/exec`)
+8. **You** update your `.env` file: replace `VITE_GOOGLE_SHEETS_URL` with their new URL
+9. If using Alerts from Google Sheets, set `VITE_ALERTS_SHEETS_URL` to the same URL (or leave it if they use static alerts)
+10. **Push to GitHub** — Vercel will redeploy. Or, if you use Vercel: go to **Project → Settings → Environment Variables**, edit `VITE_GOOGLE_SHEETS_URL` with the new URL, then **Deployments → Redeploy**
+
+RSVPs will now go to your friend's sheet. When you switch back to your own wedding, change the URL back to your sheet's Apps Script URL.
+
+### Option B: Full handoff (they host everything)
+
+Your friend gets a full copy of the app and runs it themselves:
+
+1. **Give them the project** — e.g. they fork/clone the repo, or you zip and send the `wedding-deploy` folder
+2. They follow **PART 1** to create their own Google Sheet and deploy the Apps Script
+3. They follow **PART 2** to create their own Firebase project (for push notifications)
+4. They copy `.env.example` to `.env` and fill in **their** values (Firebase config, Google Sheets URL, etc.)
+5. They deploy to Vercel (or another host) and add their environment variables
+6. They edit `src/schedule-data.js` and `src/App.jsx` for their wedding details (names, dates, venue, etc.)
 
 ---
 
@@ -331,7 +371,7 @@ This lists modified, added, or deleted files.
 git add .
 ```
 
-Or stage specific files: `git add src/App.jsx public/venue-photo.jpg`
+Or stage specific files: `git add src/App.jsx public/home/main-banner-photo.png`
 
 **4. Commit with a descriptive message**
 
@@ -380,6 +420,14 @@ Vercel detects the push and rebuilds your site. In 1–2 minutes, your live URL 
 ### If you deployed without GitHub (Option B)
 
 Run `npx vercel` again from your project folder. Each run creates a new deployment. For automatic updates on every push, connect your project to GitHub (Vercel Dashboard → Project Settings → Git).
+
+---
+
+## Venue Gallery & Video
+
+**Gallery:** Add 6–10 images to the `public/venue/` folder with the prefix `venue-gallery-`, e.g. `venue-gallery-1.png`, `venue-gallery-2.png`, … Edit the `VENUE_GALLERY_IMAGES` array in `src/App.jsx` to add or remove filenames (paths use `venue/` prefix).
+
+**Video link:** The "Watch venue video" button opens `VENUE_VIDEO_URL` in `src/App.jsx`. By default it links to the Google Maps place page (which may show photos/videos if the venue has them). To use a YouTube or other video URL instead, change `VENUE_VIDEO_URL` to that link.
 
 ---
 
@@ -694,6 +742,21 @@ git push
 
 ---
 
+### Resetting test alerts for all devices
+
+If you've been testing with alerts and want to clear them for everyone (including testers on their phones):
+
+**1. Clear the Alerts sheet** — Delete all rows (or leave only real alerts). On the next poll or refresh, everyone will see the updated list (empty or fresh).
+
+**2. Reset "read" state (so urgent banners show again)** — Add a **Config** sheet:
+- Create a new sheet tab named **Config**
+- Row 1: `key` | `value`
+- Row 2: `resetReadVersion` | `1`
+
+When you want to clear everyone's "read" state (e.g. after testing), change the value to `2`, then `3`, etc. On the next poll, all devices will clear their read list and urgent banners will appear again for any urgent alerts.
+
+---
+
 ### How it works
 
 | Feature | Behavior |
@@ -759,6 +822,109 @@ When set, the Venue tab uses Google Maps with zoom level 8. When empty, it falls
 
 ---
 
+## Vercel Analytics
+
+The app includes **Vercel Analytics** for page views and basic usage metrics. No extra setup is required.
+
+### What's already done
+
+- **Package:** `@vercel/analytics` is installed
+- **Integration:** The `<Analytics />` component is added in `src/main.jsx`
+
+### How it works
+
+- **Local dev:** Analytics does not send data (Vercel only tracks production deployments)
+- **On Vercel:** When you deploy to Vercel, analytics starts automatically. No API keys or env vars needed
+- **Dashboard:** View metrics at [vercel.com](https://vercel.com) → your project → **Analytics** tab
+
+### Optional: Custom events
+
+To track custom events (e.g. RSVP submitted, button clicks):
+
+```js
+import { track } from '@vercel/analytics';
+
+// Example: track when RSVP is sent
+track('rsvp_submitted');
+```
+
+Add `track('event_name')` wherever you want to log an action. Events appear in the Vercel Analytics dashboard.
+
+---
+
+## Passcode Gate (Option C)
+
+The app includes a passcode gate to limit access when the URL is shared widely. Guests must enter a 6-character passcode before seeing the wedding content.
+
+**How it works:**
+- Share the **URL** and **passcode separately** (e.g. URL in one message, passcode on the printed invite or via WhatsApp)
+- Guests enter the passcode once per device; it is remembered in that browser
+- Default passcode: **MS2026** (change via `VITE_APP_PASSCODE` in `.env`)
+
+**Setup:**
+1. Add `VITE_APP_PASSCODE=MS2026` to your `.env` (or your preferred 6-character code)
+2. Add the same variable in Vercel → Project Settings → Environment Variables
+3. Share the passcode only with invited guests
+
+**To change the passcode:** Update `VITE_APP_PASSCODE` in `.env` and Vercel, then redeploy. Existing guests who already unlocked will keep access until they clear browser data or use a new device.
+
+### Passcode management
+
+**Test or retest the passcode screen**
+
+The app stores the unlock state in `localStorage`. To see the passcode screen again (e.g. to test a new passcode):
+
+1. Open the app in your browser
+2. Open DevTools: **F12** or **Ctrl+Shift+I** (Windows) / **Cmd+Option+I** (Mac)
+3. Go to **Application** (Chrome) or **Storage** (Firefox) → **Local Storage** → your site
+4. Delete the key `wedding-passcode-unlocked`
+5. Refresh the page — the passcode screen will appear again
+
+Or run this in the **Console** tab:
+```javascript
+localStorage.removeItem('wedding-passcode-unlocked')
+```
+Then refresh.
+
+**Change the passcode**
+
+1. Update `VITE_APP_PASSCODE` in `.env` (e.g. `VITE_APP_PASSCODE=NEW123`)
+2. Add or update the same variable in Vercel → Project Settings → Environment Variables
+3. Redeploy (push to GitHub, or Vercel → Deployments → Redeploy)
+4. New visitors must enter the new passcode. Existing guests who already unlocked keep access on that device until they clear browser data.
+
+**Revoke access for everyone**
+
+Change the passcode (steps above). Guests who had previously unlocked will keep access only on devices where they already entered the old passcode. On any new device or after clearing browser data, they will need the new passcode.
+
+---
+
+## Enable or Disable RSVP
+
+You can turn RSVP on or off (e.g. close it after the deadline, or reopen if needed) without changing Google Sheets or Firebase.
+
+**To disable RSVP:**
+
+1. Open `src/schedule-data.js`
+2. Change `RSVP_ENABLED` from `true` to `false`:
+   ```javascript
+   export const RSVP_ENABLED = false;
+   ```
+3. Push to GitHub (or redeploy on Vercel)
+
+Guests will see "RSVP has closed. Thank you for your interest! For any queries, please contact the hosts directly." instead of the form. The RSVP tab stays visible so they can see the message.
+
+**To re-enable RSVP:**
+
+1. Open `src/schedule-data.js`
+2. Change `RSVP_ENABLED` back to `true`:
+   ```javascript
+   export const RSVP_ENABLED = true;
+   ```
+3. Push to GitHub (or redeploy)
+
+---
+
 ## Summary: What Goes in `.env` (and Vercel Environment Variables)
 
 | Variable | What to Put |
@@ -773,6 +939,7 @@ When set, the Venue tab uses Google Maps with zoom level 8. When empty, it falls
 | `VITE_GOOGLE_SHEETS_URL` | Full Google Apps Script Web App URL (RSVP) |
 | `VITE_ALERTS_SHEETS_URL` | Same URL for Alerts from sheet (optional; when empty, uses static alerts) |
 | `VITE_GOOGLE_MAPS_EMBED_KEY` | Google Maps Embed API key (optional; when empty, uses OpenStreetMap) |
+| `VITE_APP_PASSCODE` | 6-character passcode for app access (Option C). Default: MS2026. Share only with invited guests. |
 
 ---
 
@@ -802,3 +969,4 @@ That's it! Your wedding app now has:
 ✅ Real push notifications to guests' phones
 ✅ Manual in-app alerts (edit `src/alerts-data.js` and push — works on all devices)
 ✅ Notification preferences per guest
+✅ Vercel Analytics (page views and metrics when deployed to Vercel)

@@ -45,12 +45,11 @@ export async function fetchAlerts() {
     const res = await fetch(url);
     const data = await res.json();
     const alerts = parseAlerts(data);
-    if (alerts.length > 0) {
-      setCache(alerts);
-      return { alerts, fromCache: false };
-    }
+    // Always overwrite cache when fetch succeeds (even if empty) — so clearing the sheet clears for everyone
+    setCache(alerts);
+    return { alerts: alerts.length > 0 ? alerts : [], resetReadVersion: data.resetReadVersion, fromCache: false };
   } catch (_) {}
 
   const cached = getCached();
-  return { alerts: cached || STATIC_ALERTS, fromCache: !!cached };
+  return { alerts: cached || STATIC_ALERTS, resetReadVersion: undefined, fromCache: !!cached };
 }

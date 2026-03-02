@@ -59,12 +59,16 @@ export async function submitRSVPToSheets(formData) {
   if (!GOOGLE_SHEETS_URL) return { success: false, error: "No Sheets URL configured" };
   try {
     const payload = {
-      ...formData,
-      phone: safeForSheets(formData.phone),
-      name: safeForSheets(formData.name),
-      dietary: safeForSheets(formData.dietary),
-      plusOneName: safeForSheets(formData.plusOneName),
       timestamp: new Date().toISOString(),
+      name: safeForSheets(formData.name),
+      phone: safeForSheets(formData.phone),
+      attending: formData.attending || "",
+      guests: formData.guests || "1",
+      veg: formData.veg ?? "",
+      nonVeg: formData.nonVeg ?? "",
+      drinkPreference: formData.drinkPreference || "",
+      gangaPoojaDrink: formData.gangaPoojaDrink || "",
+      consent: formData.consent ? "Yes" : "No",
     };
     const response = await fetch(GOOGLE_SHEETS_URL, {
       method: "POST",

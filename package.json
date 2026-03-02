@@ -15,6 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@vercel/analytics": "^1.6.1",
     "@vitejs/plugin-react": "^4.3.4",
     "canvas-confetti": "^1.9.4",
     "firebase": "^12.9.0",

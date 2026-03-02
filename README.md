@@ -79,7 +79,7 @@ This app includes a web manifest so guests can install it like a native app:
 All content is in `src/App.jsx`:
 - **Names & dates**: Search for "Moksha" and "Sachin"
 - **Colors**: Edit the `theme` object at the top
-- **Hero background image**: Add your photo to the `public/` folder and name it `venue-photo.jpg` or `venue-photo.png` — it will automatically appear as the landing screen background. See `public/HERO_IMAGE_README.txt` for details.
+- **Hero background image**: Add your photo to the `public/home/` folder and name it `main-banner-photo.png` — it will automatically appear as the landing screen background. See `public/home/HERO_IMAGE_README.txt` for details.
 - **Events**: Edit the `events` array in `ScheduleScreen`
 - **Stays**: Edit the `stays` array in `StayScreen`
 - **Venue**: Edit details in `VenueScreen`. Map uses OpenStreetMap with a red pin. To change location: update `VENUE_LAT` and `VENUE_LNG` in `App.jsx`. For Google Maps instead: get embed URL from Google Maps → Share → Embed → paste into `VENUE_MAP_EMBED`
