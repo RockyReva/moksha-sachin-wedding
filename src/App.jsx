@@ -1657,42 +1657,25 @@ function AlertBanner({ alert, onDismiss }) {
 }
 
 // ========== PASSCODE GATE (Option C) ==========
+// Uses a single hidden input so the keyboard stays in the same mode on iPhone when typing
 function PasscodeScreen({ onUnlock }) {
-  const [digits, setDigits] = useState(["", "", "", "", "", ""]);
+  const [value, setValue] = useState("");
   const [error, setError] = useState("");
-  const refs = useRef([]);
+  const inputRef = useRef(null);
 
-  const setDigit = (i, char) => {
-    const next = [...digits];
-    next[i] = char;
-    setDigits(next);
+  const handleChange = (e) => {
+    const v = (e.target.value || "").slice(0, 6).toUpperCase();
+    setValue(v);
     setError("");
-    if (char && i < 5) refs.current[i + 1]?.focus();
-    if (next.join("").length === 6) {
-      const code = next.join("");
-      if (code === APP_PASSCODE) {
+    if (v.length === 6) {
+      if (v === APP_PASSCODE) {
         try { localStorage.setItem(PASSCODE_STORAGE_KEY, "1"); } catch (_) {}
         onUnlock();
       } else {
         setError("Incorrect passcode. Please try again.");
-        setDigits(["", "", "", "", "", ""]);
-        refs.current[0]?.focus();
+        setValue("");
+        inputRef.current?.focus();
       }
-    }
-  };
-
-  const handleKeyDown = (i, e) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) {
-      const next = [...digits];
-      next[i - 1] = "";
-      setDigits(next);
-      setError("");
-      refs.current[i - 1]?.focus();
-    } else if (e.key === "Backspace" && digits[i]) {
-      const next = [...digits];
-      next[i] = "";
-      setDigits(next);
-      setError("");
     }
   };
 
@@ -1700,42 +1683,41 @@ function PasscodeScreen({ onUnlock }) {
     e.preventDefault();
     const pasted = (e.clipboardData?.getData("text") || "").slice(0, 6).toUpperCase();
     if (pasted.length > 0) {
-      const next = pasted.split("").concat(Array(6).fill("")).slice(0, 6);
-      setDigits(next);
+      setValue(pasted);
       setError("");
-      if (next.join("") === APP_PASSCODE) {
-        try { localStorage.setItem(PASSCODE_STORAGE_KEY, "1"); } catch (_) {}
-        onUnlock();
-      } else if (pasted.length === 6) {
-        setError("Incorrect passcode. Please try again.");
-        setDigits(["", "", "", "", "", ""]);
-        refs.current[0]?.focus();
-      } else {
-        refs.current[Math.min(pasted.length, 5)]?.focus();
+      if (pasted.length === 6) {
+        if (pasted === APP_PASSCODE) {
+          try { localStorage.setItem(PASSCODE_STORAGE_KEY, "1"); } catch (_) {}
+          onUnlock();
+        } else {
+          setError("Incorrect passcode. Please try again.");
+          setValue("");
+          inputRef.current?.focus();
+        }
       }
     }
   };
 
   const handleSubmit = (e) => {
     e?.preventDefault?.();
-    const code = digits.join("");
-    if (code.length !== 6) return;
+    if (value.length !== 6) return;
     setError("");
-    if (code === APP_PASSCODE) {
+    if (value === APP_PASSCODE) {
       try { localStorage.setItem(PASSCODE_STORAGE_KEY, "1"); } catch (_) {}
       onUnlock();
     } else {
       setError("Incorrect passcode. Please try again.");
-      setDigits(["", "", "", "", "", ""]);
-      refs.current[0]?.focus();
+      setValue("");
+      inputRef.current?.focus();
     }
   };
 
+  const digits = value.split("").concat(Array(6).fill("")).slice(0, 6);
   const boxStyle = (i) => ({
     width: 40, height: 48, borderRadius: 12, border: `1.5px solid ${error ? "#E53935" : theme.border}`,
     fontSize: 20, fontWeight: 700, textAlign: "center", textTransform: "uppercase",
-    background: theme.card, color: theme.text, outline: "none", boxSizing: "border-box",
-    fontFamily: typo.fontSans,
+    background: theme.card, color: theme.text, display: "flex", alignItems: "center", justifyContent: "center",
+    boxSizing: "border-box", fontFamily: typo.fontSans,
   });
 
   return (
@@ -1751,22 +1733,28 @@ function PasscodeScreen({ onUnlock }) {
         <p style={{ fontFamily: typo.fontSerif, fontSize: typo.h3, color: theme.text, margin: "0 0 8px", textAlign: "center" }}>Welcome</p>
         <p style={{ fontSize: typo.caption, color: theme.textMuted, margin: "0 0 24px", textAlign: "center" }}>Please enter the passcode shared with your invitation</p>
         <form onSubmit={handleSubmit}>
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 20 }}>
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <input
-                key={i}
-                ref={(el) => { refs.current[i] = el; }}
-                type="text"
-                maxLength={1}
-                value={digits[i]}
-                onChange={(e) => setDigit(i, (e.target.value || "").toUpperCase().slice(-1))}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                onPaste={handlePaste}
-                inputMode="text"
-                autoComplete="off"
-                autoFocus={i === 0}
-                style={boxStyle(i)}
-              />
+          <div
+            onClick={() => inputRef.current?.focus()}
+            style={{ position: "relative", display: "flex", justifyContent: "center", gap: 8, marginBottom: 20, cursor: "text" }}
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              maxLength={6}
+              value={value}
+              onChange={handleChange}
+              onPaste={handlePaste}
+              inputMode="text"
+              autoComplete="off"
+              autoFocus
+              aria-label="Passcode"
+              style={{
+                position: "absolute", left: -9999, width: 1, height: 1, opacity: 0, pointerEvents: "none",
+                fontSize: 16, fontFamily: typo.fontSans,
+              }}
+            />
+            {digits.map((d, i) => (
+              <div key={i} style={boxStyle(i)}>{d}</div>
             ))}
           </div>
           {error && <p style={{ fontSize: typo.small, color: "#E53935", margin: "0 0 16px", textAlign: "center" }}>{error}</p>}
