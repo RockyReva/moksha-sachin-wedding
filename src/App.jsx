@@ -1661,6 +1661,7 @@ function AlertBanner({ alert, onDismiss }) {
 function PasscodeScreen({ onUnlock }) {
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
 
   const handleChange = (e) => {
@@ -1744,6 +1745,8 @@ function PasscodeScreen({ onUnlock }) {
               value={value}
               onChange={handleChange}
               onPaste={handlePaste}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
               inputMode="text"
               autoComplete="off"
               autoFocus
@@ -1754,7 +1757,16 @@ function PasscodeScreen({ onUnlock }) {
               }}
             />
             {digits.map((d, i) => (
-              <div key={i} style={boxStyle(i)}>{d}</div>
+              <div key={i} style={boxStyle(i)}>
+                {d}
+                {focused && i === value.length && value.length < 6 && (
+                  <span style={{
+                    width: 2, height: 24, background: theme.accent, marginLeft: 1,
+                    animation: "passcode-cursor-blink 1s step-end infinite",
+                    display: "inline-block", verticalAlign: "middle",
+                  }} />
+                )}
+              </div>
             ))}
           </div>
           {error && <p style={{ fontSize: typo.small, color: "#E53935", margin: "0 0 16px", textAlign: "center" }}>{error}</p>}
